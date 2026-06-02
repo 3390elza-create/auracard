@@ -1,6 +1,4 @@
-import type { Address } from '@/lib/mock/types'
-
-export type { Address }
+export type Address = `0x${string}`
 
 export interface SessionClaims {
   address: Address

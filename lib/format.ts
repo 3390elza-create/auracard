@@ -1,4 +1,4 @@
-import type { Address } from './mock/types'
+import type { Address } from './web3/types'
 
 export function formatUSD(value: number): string {
   return new Intl.NumberFormat('en-US', {

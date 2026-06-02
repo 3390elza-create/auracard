@@ -1,4 +1,6 @@
-export type Address = `0x${string}`
+import type { Address } from '@/lib/web3/types'
+
+export type { Address }
 
 export type AssetSymbol = 'BTC' | 'ETH' | 'USDC'
 
@@ -48,15 +50,7 @@ export interface TimelineEvent {
   timestamp: string
 }
 
-export interface WalletSession {
-  address: Address
-  addressShort: string
-  chainId: number
-  chainName: string
-}
-
 export interface DashboardData {
-  wallet: WalletSession
   progress: ApprovalProgress
   balance: EligibleBalance
   limit: EstimatedLimit
