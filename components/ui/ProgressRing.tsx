@@ -18,7 +18,15 @@ export function ProgressRing({
   const circumference = 2 * Math.PI * radius
   const offset = circumference * (1 - clamped / 100)
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div
+      className="relative"
+      style={{ width: size, height: size }}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={clamped}
+      aria-label={label}
+    >
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <circle
           cx="50" cy="50" r={radius}
