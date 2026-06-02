@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aura Finance | Seu patrimônio on-chain no mundo real</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "text-primary": "#F7F9FA",
+                        "on-secondary": "#002d6c",
+                        "on-tertiary-container": "#00302a",
+                        "error-container": "#93000a",
+                        "surface-container-high": "#2a292f",
+                        "aurora-violet": "#7C5CFF",
+                        "on-primary-fixed-variant": "#4816cb",
+                        "aurora-blue": "#4F8CFF",
+                        "text-secondary": "#A0A9BE",
+                        "error": "#ffb4ab",
+                        "surface-variant": "#35343a",
+                        "on-error-container": "#ffdad6",
+                        "outline-variant": "#484555",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#afc6ff",
+                        "secondary-container": "#045ecf",
+                        "primary-fixed": "#e6deff",
+                        "surface-container": "#1f1f24",
+                        "on-tertiary-fixed": "#00201c",
+                        "surface-container-highest": "#35343a",
+                        "on-background": "#e4e1e9",
+                        "on-surface": "#e4e1e9",
+                        "tertiary-container": "#00a392",
+                        "surface-container-low": "#1b1b20",
+                        "outline": "#938ea1",
+                        "on-secondary-fixed": "#001a43",
+                        "aurora-teal": "#2DD4BF",
+                        "secondary-fixed": "#d9e2ff",
+                        "tertiary-fixed": "#62fae3",
+                        "surface": "#131318",
+                        "glass-fill": "rgba(255, 255, 255, 0.07)",
+                        "on-tertiary-fixed-variant": "#005047",
+                        "glass-border": "rgba(255, 255, 255, 0.12)",
+                        "primary-container": "#947dff",
+                        "inverse-on-surface": "#303036",
+                        "primary": "#cabeff",
+                        "secondary": "#afc6ff",
+                        "on-surface-variant": "#c9c4d8",
+                        "tertiary-fixed-dim": "#3cddc7",
+                        "on-tertiary": "#003731",
+                        "background": "#0B0B10",
+                        "tertiary": "#3cddc7",
+                        "surface-dim": "#131318",
+                        "surface-bright": "#39383e",
+                        "inverse-primary": "#603ce2",
+                        "on-secondary-container": "#d5e0ff",
+                        "surface-tint": "#cabeff",
+                        "on-secondary-fixed-variant": "#004398",
+                        "primary-fixed-dim": "#cabeff",
+                        "inverse-surface": "#e4e1e9",
+                        "surface-container-lowest": "#0e0e13",
+                        "on-primary-fixed": "#1c0062",
+                        "on-primary-container": "#2a0088",
+                        "on-primary": "#31009a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "stack-md": "16px",
+                        "container-max": "1280px",
+                        "unit": "4px",
+                        "margin-mobile": "20px",
+                        "stack-lg": "32px",
+                        "margin-desktop": "40px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "label-md": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "display-lg": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.03em", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0B0B10;
+            color: #F7F9FA;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            filter: blur(100px);
+            opacity: 0.4;
+        }
+
+        .aurora-1 {
+            position: absolute;
+            top: -10%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, #7C5CFF 0%, transparent 70%);
+        }
+
+        .aurora-2 {
+            position: absolute;
+            bottom: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #2DD4BF 0%, transparent 70%);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-button {
+            background: linear-gradient(135deg, #7C5CFF 0%, #2DD4BF 100%);
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .gradient-button:active {
+            transform: scale(0.95);
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #7C5CFF 0%, #2DD4BF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 45%,
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent 55%
+            );
+            animation: shimmer 5s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-aurora-teal selection:text-on-tertiary-container">
+<!-- Background Elements -->
+<div class="aurora-bg">
+<div class="aurora-1"></div>
+<div class="aurora-2"></div>
+</div>
+<!-- TopNavBar -->
+<nav class="w-full top-0 sticky z-50 bg-glass-fill backdrop-blur-md border-b border-glass-border">
+<div class="flex justify-between items-center px-gutter py-4 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-3">
+<img alt="Aura Logo" class="w-10 h-10 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-NayM5rgm1Gfvw6mgQ1_yFz6UfJUPjdCD5ORzZnxnXJ9zPUAUaRo3nXYNXEGdUPwyP-xghxjuXImSX5RDr6gyx9xsJ4v64lULb7nxSgfowtjWPaXKugDFgf4xkuSbPNoZd5ZA6U6rDpZNr9mFhAGv6UxjcjhsJAWhvJNhW87d9utgpMP3bnaN15iCqBIW0KwAQdbIQIK_wdjptwd_akleydCDNknYKpY-XKjHh3NyuCqzGyfEcrGUmiEOxpEP8RNjucRZ1d2WgA"/>
+<span class="font-headline-md text-headline-md font-bold tracking-tight text-text-primary">Aura</span>
+</div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="text-primary font-bold border-b-2 border-aurora-violet pb-1 font-label-md text-label-md" href="#">Home</a>
+<a class="text-text-secondary hover:text-text-primary transition-colors font-label-md text-label-md" href="#">Cartões</a>
+<a class="text-text-secondary hover:text-text-primary transition-colors font-label-md text-label-md" href="#">Investimentos</a>
+<a class="text-text-secondary hover:text-text-primary transition-colors font-label-md text-label-md" href="#">Segurança</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="gradient-button px-6 py-2.5 rounded-xl text-white font-bold text-label-md hover:opacity-90 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                    Connect Wallet
+                </button>
+</div>
+</div>
+</nav>
+<main class="max-w-container-max mx-auto px-gutter md:px-margin-desktop">
+<!-- Hero Section -->
+<section class="py-20 md:py-32 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+<div class="space-y-stack-lg">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-text-primary max-w-xl">
+                    Seu patrimônio on-chain agora no mundo real
+                </h1>
+<p class="font-body-lg text-body-lg text-text-secondary max-w-lg">
+                    O primeiro cartão de crédito de luxo lastreado por suas criptos. Sem burocracia, com aprovação instantânea.
+                </p>
+<div class="flex flex-col sm:flex-row gap-stack-md pt-4">
+<button class="gradient-button px-8 py-4 rounded-xl text-white font-bold text-body-md hover:opacity-90 flex items-center justify-center gap-2">
+                        Conectar carteira
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<button class="glass-card px-8 py-4 rounded-xl text-text-primary font-bold text-body-md hover:bg-white/10 flex items-center justify-center gap-2">
+                        Ver benefícios
+                    </button>
+</div>
+</div>
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-aurora-violet to-aurora-teal rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
+<div class="relative glass-card aspect-[1.58/1] rounded-3xl overflow-hidden shimmer p-8 flex flex-col justify-between shadow-2xl">
+<div class="flex justify-between items-start">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-text-secondary uppercase tracking-[0.2em]">Aura Elite</span>
+<div class="mt-4 w-12 h-10 bg-gradient-to-br from-yellow-600 to-yellow-200 rounded-md opacity-80 relative">
+<div class="absolute inset-0 border border-white/20 rounded-md"></div>
+</div>
+</div>
+<img alt="Aura Logo" class="w-12 h-12 grayscale brightness-200 opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-NayM5rgm1Gfvw6mgQ1_yFz6UfJUPjdCD5ORzZnxnXJ9zPUAUaRo3nXYNXEGdUPwyP-xghxjuXImSX5RDr6gyx9xsJ4v64lULb7nxSgfowtjWPaXKugDFgf4xkuSbPNoZd5ZA6U6rDpZNr9mFhAGv6UxjcjhsJAWhvJNhW87d9utgpMP3bnaN15iCqBIW0KwAQdbIQIK_wdjptwd_akleydCDNknYKpY-XKjHh3NyuCqzGyfEcrGUmiEOxpEP8RNjucRZ1d2WgA"/>
+</div>
+<div class="space-y-4">
+<div class="text-headline-md font-headline-md tracking-[0.1em] text-white/90">
+                            •••• •••• •••• 8821
+                        </div>
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-text-secondary tracking-widest">Card Holder</span>
+<span class="font-label-md text-label-md text-white">GENESIS MEMBER</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-red-500/80 mix-blend-screen"></div>
+<div class="w-8 h-8 rounded-full bg-orange-500/80 -ml-4 mix-blend-screen"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Description for the generated card context -->
+<div class="hidden">
+<img data-alt="A cinematic close-up of a premium, dark metallic physical credit card with a minimalist aesthetic. The card features an abstract etched pattern that catches a soft violet and teal environmental glow. It is floating in a void-like dark space with subtle light refractions and a shallow depth of field. The mood is sophisticated, luxurious, and technologically advanced, echoing high-end Swiss design principles." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBF7zQKgnE2XWeCfIR7CEzuff2HwihaIBQzFhKnhoXIL5ehRtkJtfohNchqLMerz-m2dy9L6-rhLE0SoofcxxJ9THCVj7ShwdgTSj7eSDElbRWOUTYIA1jcl1UafETXtKp9UG8jz-i-d_FkEOhEm3GynpxnpRe3FfnnTd6JgLux-2A7_YO6ZgtxLYbEiob1L_atZWrmJmQ2neWHkGfO4LxOnSYQMid_1TM_f7xS96cZz1ESXjXHtn8F6HQQIPDkIOIdH9KPPwaJyA"/>
+</div>
+</div>
+</section>
+<!-- Glass Benefit Cards -->
+<section class="py-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="glass-card p-stack-lg rounded-2xl flex flex-col gap-4">
+<div class="w-12 h-12 rounded-xl bg-aurora-violet/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-aurora-violet">account_balance</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-text-primary">Sem banco</h3>
+<p class="font-body-md text-body-md text-text-secondary">Independência total das instituições financeiras tradicionais e burocracia excessiva.</p>
+</div>
+<div class="glass-card p-stack-lg rounded-2xl flex flex-col gap-4">
+<div class="w-12 h-12 rounded-xl bg-aurora-teal/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-aurora-teal">security</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-text-primary">Garantia em cripto</h3>
+<p class="font-body-md text-body-md text-text-secondary">Use seus ativos como colateral sem precisar vendê-los, mantendo seu potencial de alta.</p>
+</div>
+<div class="glass-card p-stack-lg rounded-2xl flex flex-col gap-4">
+<div class="w-12 h-12 rounded-xl bg-aurora-blue/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-aurora-blue">history_edu</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-text-primary">Aprovação on-chain</h3>
+<p class="font-body-md text-body-md text-text-secondary">Análise baseada inteiramente no seu histórico de carteira e liquidez digital.</p>
+</div>
+</section>
+<!-- Como Funciona Section -->
+<section class="py-20 md:py-32">
+<div class="text-center mb-16 space-y-4">
+<h2 class="font-headline-lg text-headline-lg text-text-primary">Como funciona</h2>
+<p class="font-body-lg text-body-lg text-text-secondary max-w-2xl mx-auto">Sua jornada para o luxo digital em três passos simples e seguros.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+<!-- Decorative Connector Line -->
+<div class="hidden md:block absolute top-1/4 left-[10%] right-[10%] h-[1px] bg-glass-border"></div>
+<div class="flex flex-col items-center text-center gap-6 relative">
+<div class="w-16 h-16 rounded-full glass-card flex items-center justify-center z-10">
+<span class="font-headline-md text-headline-md step-number font-bold">1</span>
+</div>
+<div class="space-y-2">
+<h4 class="font-headline-md text-headline-md text-text-primary">Conecte a carteira</h4>
+<p class="font-body-md text-body-md text-text-secondary">Utilize MetaMask, WalletConnect ou Ledger com total segurança.</p>
+</div>
+</div>
+<div class="flex flex-col items-center text-center gap-6 relative">
+<div class="w-16 h-16 rounded-full glass-card flex items-center justify-center z-10">
+<span class="font-headline-md text-headline-md step-number font-bold">2</span>
+</div>
+<div class="space-y-2">
+<h4 class="font-headline-md text-headline-md text-text-primary">Analisamos seus ativos</h4>
+<p class="font-body-md text-body-md text-text-secondary">Nosso protocolo avalia sua liquidez e score on-chain em segundos.</p>
+</div>
+</div>
+<div class="flex flex-col items-center text-center gap-6 relative">
+<div class="w-16 h-16 rounded-full glass-card flex items-center justify-center z-10">
+<span class="font-headline-md text-headline-md step-number font-bold">3</span>
+</div>
+<div class="space-y-2">
+<h4 class="font-headline-md text-headline-md text-text-primary">Receba seu cartão</h4>
+<p class="font-body-md text-body-md text-text-secondary">Acesso imediato à versão digital e entrega VIP do seu cartão físico.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-20">
+<div class="glass-card rounded-[32px] p-12 md:p-20 text-center relative overflow-hidden">
+<div class="absolute top-0 right-0 w-64 h-64 bg-aurora-violet/20 blur-[80px]"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-aurora-teal/20 blur-[80px]"></div>
+<div class="relative z-10 space-y-8">
+<h2 class="font-headline-lg text-headline-lg text-text-primary">Pronto para elevar seu padrão financeiro?</h2>
+<p class="font-body-lg text-body-lg text-text-secondary max-w-xl mx-auto">Junte-se a investidores de elite que já estão colhendo os benefícios da Aura Finance em todo o mundo.</p>
+<button class="gradient-button px-10 py-5 rounded-xl text-white font-bold text-headline-md hover:opacity-90 transition-all hover:scale-105 inline-flex items-center gap-3">
+                        Solicitar meu Aura Card
+                        <span class="material-symbols-outlined">star</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-stack-lg border-t border-glass-border bg-surface-container-lowest mt-20">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-container-max mx-auto gap-stack-md">
+<div class="flex items-center gap-3">
+<img alt="Aura Logo" class="w-8 h-8 opacity-70" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-NayM5rgm1Gfvw6mgQ1_yFz6UfJUPjdCD5ORzZnxnXJ9zPUAUaRo3nXYNXEGdUPwyP-xghxjuXImSX5RDr6gyx9xsJ4v64lULb7nxSgfowtjWPaXKugDFgf4xkuSbPNoZd5ZA6U6rDpZNr9mFhAGv6UxjcjhsJAWhvJNhW87d9utgpMP3bnaN15iCqBIW0KwAQdbIQIK_wdjptwd_akleydCDNknYKpY-XKjHh3NyuCqzGyfEcrGUmiEOxpEP8RNjucRZ1d2WgA"/>
+<span class="text-text-primary font-headline-md">Aura</span>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="text-text-secondary hover:text-aurora-blue transition-colors font-label-sm text-label-sm uppercase tracking-wider" href="#">Termos</a>
+<a class="text-text-secondary hover:text-aurora-blue transition-colors font-label-sm text-label-sm uppercase tracking-wider" href="#">Privacidade</a>
+<a class="text-text-secondary hover:text-aurora-blue transition-colors font-label-sm text-label-sm uppercase tracking-wider" href="#">Suporte</a>
+<a class="text-text-secondary hover:text-aurora-blue transition-colors font-label-sm text-label-sm uppercase tracking-wider" href="#">Blog</a>
+</div>
+<p class="font-label-sm text-label-sm text-text-secondary">
+                © 2024 Aura Crypto. Todos os direitos reservados.
+            </p>
+</div>
+</footer>
+<script>
+        // Subtle micro-interaction for the card following mouse
+        const card = document.querySelector('.relative.glass-card');
+        const container = card.parentElement;
+
+        container.addEventListener('mousemove', (e) => {
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = (y - centerY) / 20;
+            const rotateY = (centerX - x) / 20;
+            
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        container.addEventListener('mouseleave', () => {
+            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+        });
+    </script>
+</body></html>

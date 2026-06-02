@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "text-primary": "#F7F9FA",
+                        "on-secondary": "#002d6c",
+                        "on-tertiary-container": "#00302a",
+                        "error-container": "#93000a",
+                        "surface-container-high": "#2a292f",
+                        "aurora-violet": "#7C5CFF",
+                        "on-primary-fixed-variant": "#4816cb",
+                        "aurora-blue": "#4F8CFF",
+                        "text-secondary": "#A0A9BE",
+                        "error": "#ffb4ab",
+                        "surface-variant": "#35343a",
+                        "on-error-container": "#ffdad6",
+                        "outline-variant": "#484555",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#afc6ff",
+                        "secondary-container": "#045ecf",
+                        "primary-fixed": "#e6deff",
+                        "surface-container": "#1f1f24",
+                        "on-tertiary-fixed": "#00201c",
+                        "surface-container-highest": "#35343a",
+                        "on-background": "#e4e1e9",
+                        "on-surface": "#e4e1e9",
+                        "tertiary-container": "#00a392",
+                        "surface-container-low": "#1b1b20",
+                        "outline": "#938ea1",
+                        "on-secondary-fixed": "#001a43",
+                        "aurora-teal": "#2DD4BF",
+                        "secondary-fixed": "#d9e2ff",
+                        "tertiary-fixed": "#62fae3",
+                        "surface": "#131318",
+                        "glass-fill": "rgba(255, 255, 255, 0.07)",
+                        "on-tertiary-fixed-variant": "#005047",
+                        "glass-border": "rgba(255, 255, 255, 0.12)",
+                        "primary-container": "#947dff",
+                        "inverse-on-surface": "#303036",
+                        "primary": "#cabeff",
+                        "secondary": "#afc6ff",
+                        "on-surface-variant": "#c9c4d8",
+                        "tertiary-fixed-dim": "#3cddc7",
+                        "on-tertiary": "#003731",
+                        "background": "#131318",
+                        "tertiary": "#3cddc7",
+                        "surface-dim": "#131318",
+                        "surface-bright": "#39383e",
+                        "inverse-primary": "#603ce2",
+                        "on-secondary-container": "#d5e0ff",
+                        "surface-tint": "#cabeff",
+                        "on-secondary-fixed-variant": "#004398",
+                        "primary-fixed-dim": "#cabeff",
+                        "inverse-surface": "#e4e1e9",
+                        "surface-container-lowest": "#0e0e13",
+                        "on-primary-fixed": "#1c0062",
+                        "on-primary-container": "#2a0088",
+                        "on-primary": "#31009a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "stack-md": "16px",
+                        "container-max": "1280px",
+                        "unit": "4px",
+                        "margin-mobile": "20px",
+                        "stack-lg": "32px",
+                        "margin-desktop": "40px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0B0B10;
+            color: #F7F9FA;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .aurora-blob {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            animation: drift 20s infinite alternate ease-in-out;
+        }
+
+        @keyframes drift {
+            from { transform: translate(-10%, -10%) scale(1); }
+            to { transform: translate(10%, 10%) scale(1.1); }
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #7C5CFF 0%, #2DD4BF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #7C5CFF 0%, #2DD4BF 100%);
+        }
+
+        .pulse-accent {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- Background Decoration -->
+<div class="aurora-bg">
+<div class="aurora-blob bg-aurora-violet top-[-100px] left-[-100px]"></div>
+<div class="aurora-blob bg-aurora-teal bottom-[-100px] right-[-100px]" style="animation-delay: -5s;"></div>
+</div>
+<!-- Sidebar -->
+<aside class="hidden lg:flex flex-col h-screen w-64 fixed left-0 top-0 bg-glass-fill backdrop-blur-xl border-r border-glass-border shadow-lg shadow-black/20 py-stack-lg z-50">
+<div class="px-gutter mb-12">
+<img alt="Aura Logo" class="w-12 h-12 rounded-md object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-NayM5rgm1Gfvw6mgQ1_yFz6UfJUPjdCD5ORzZnxnXJ9zPUAUaRo3nXYNXEGdUPwyP-xghxjuXImSX5RDr6gyx9xsJ4v64lULb7nxSgfowtjWPaXKugDFgf4xkuSbPNoZd5ZA6U6rDpZNr9mFhAGv6UxjcjhsJAWhvJNhW87d9utgpMP3bnaN15iCqBIW0KwAQdbIQIK_wdjptwd_akleydCDNknYKpY-XKjHh3NyuCqzGyfEcrGUmiEOxpEP8RNjucRZ1d2WgA"/>
+</div>
+<nav class="flex-grow flex flex-col gap-2">
+<a class="flex items-center gap-3 px-gutter py-3 bg-primary-container/20 text-primary border-r-4 border-aurora-teal transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-md text-label-md">Visão Geral</span>
+</a>
+<a class="flex items-center gap-3 px-gutter py-3 text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">credit_card</span>
+<span class="font-label-md text-label-md">Cartão</span>
+</a>
+<a class="flex items-center gap-3 px-gutter py-3 text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Carteira</span>
+</a>
+<a class="flex items-center gap-3 px-gutter py-3 text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Configurações</span>
+</a>
+</nav>
+<div class="mt-auto px-gutter">
+<div class="glass-panel p-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-aurora-teal shadow-[0_0_8px_rgba(45,212,191,0.6)]"></div>
+<span class="font-label-sm text-label-sm text-text-secondary tracking-wider">0x1a2…9f4</span>
+</div>
+<button class="text-text-secondary hover:text-text-primary">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-grow lg:ml-64 px-gutter lg:px-margin-desktop py-stack-lg w-full max-w-container-max mx-auto">
+<!-- Top Bar -->
+<header class="flex justify-between items-center mb-12">
+<div>
+<h1 class="font-headline-md text-headline-md text-text-primary">Olá 👋</h1>
+<p class="font-body-md text-body-md text-text-secondary mt-1">Bem-vindo de volta ao seu centro de comando Aura.</p>
+</div>
+<div class="glass-panel px-4 py-2 flex items-center gap-3 border border-aurora-violet/30">
+<span class="material-symbols-outlined text-aurora-violet">verified</span>
+<span class="font-label-md text-label-md text-text-primary">0x71C...4f31</span>
+</div>
+</header>
+<!-- Hero Status Stepper Card -->
+<section class="glass-panel p-stack-lg mb-stack-lg relative overflow-hidden">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+<h2 class="font-headline-md text-headline-md font-bold">Status da Liberação</h2>
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="material-symbols-outlined text-[20px]">schedule</span>
+<span class="font-label-md text-label-md">Conclusão estimada: ~2h</span>
+</div>
+</div>
+<!-- Stepper -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative mb-8">
+<!-- Line background -->
+<div class="hidden md:block absolute top-6 left-0 w-full h-[2px] bg-white/10 -z-10"></div>
+<!-- Step 1 -->
+<div class="flex flex-col items-center md:items-start text-center md:text-left">
+<div class="w-12 h-12 rounded-full gradient-bg flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(124,92,255,0.4)]">
+<span class="material-symbols-outlined text-white">check</span>
+</div>
+<p class="font-label-md text-label-md text-text-primary">Carteira conectada</p>
+<p class="font-label-sm text-label-sm text-aurora-teal mt-1">Concluído</p>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center md:items-start text-center md:text-left">
+<div class="w-12 h-12 rounded-full bg-aurora-violet/20 border-2 border-aurora-violet flex items-center justify-center mb-4 pulse-accent">
+<span class="material-symbols-outlined text-aurora-violet">analytics</span>
+</div>
+<p class="font-label-md text-label-md text-text-primary">Análise de ativos</p>
+<p class="font-label-sm text-label-sm text-aurora-violet mt-1">Em andamento</p>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center md:items-start text-center md:text-left opacity-40">
+<div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-text-secondary">fact_check</span>
+</div>
+<p class="font-label-md text-label-md text-text-secondary">Aprovação</p>
+<p class="font-label-sm text-label-sm mt-1">Pendente</p>
+</div>
+<!-- Step 4 -->
+<div class="flex flex-col items-center md:items-start text-center md:text-left opacity-40">
+<div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-text-secondary">credit_score</span>
+</div>
+<p class="font-label-md text-label-md text-text-secondary">Cartão liberado</p>
+<p class="font-label-sm text-label-sm mt-1">Pendente</p>
+</div>
+</div>
+<!-- Main Progress Bar -->
+<div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+<div class="h-full gradient-bg w-[45%] transition-all duration-1000"></div>
+</div>
+</section>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg mb-stack-lg">
+<!-- Saldo Elegível -->
+<article class="glass-panel p-stack-lg flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-6">
+<h3 class="font-label-md text-label-md text-text-secondary uppercase tracking-widest">Saldo Elegível</h3>
+<span class="material-symbols-outlined text-aurora-teal">account_balance</span>
+</div>
+<p class="font-display-lg text-[32px] md:text-[40px] font-bold text-text-primary mb-8">R$ 142.500,00</p>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px] text-orange-500">currency_bitcoin</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary">Bitcoin</span>
+</div>
+<span class="font-label-md text-label-md text-text-secondary">0.45 BTC</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-aurora-blue/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px] text-aurora-blue">eco</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary">Ethereum</span>
+</div>
+<span class="font-label-md text-label-md text-text-secondary">12.8 ETH</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-aurora-teal/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px] text-aurora-teal">monetization_on</span>
+</div>
+<span class="font-label-md text-label-md text-text-primary">USDC</span>
+</div>
+<span class="font-label-md text-label-md text-text-secondary">15,000 USDC</span>
+</div>
+</div>
+</article>
+<!-- Limite Estimado -->
+<article class="glass-panel p-stack-lg flex flex-col items-center justify-center text-center">
+<h3 class="font-label-md text-label-md text-text-secondary uppercase tracking-widest self-start mb-6">Limite Estimado</h3>
+<div class="relative w-48 h-48 mb-6">
+<svg class="w-full h-full" viewbox="0 0 100 100">
+<circle class="text-white/5" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-aurora-teal progress-ring-circle" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="75.36" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-headline-md text-headline-md font-bold text-text-primary">R$ 45k</span>
+<span class="font-label-sm text-label-sm text-text-secondary">Disponível</span>
+</div>
+</div>
+<div class="glass-panel px-4 py-2 inline-flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-aurora-teal"></span>
+<span class="font-label-sm text-label-sm text-text-primary">70% de Taxa de Utilização Ideal</span>
+</div>
+</article>
+</div>
+<!-- Activity Timeline -->
+<section class="glass-panel p-stack-lg">
+<h3 class="font-headline-md text-headline-md font-bold mb-8">Eventos de Análise</h3>
+<div class="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-aurora-violet before:to-transparent">
+<div class="relative flex items-center justify-between gap-4 pl-12 group">
+<div class="absolute left-0 w-10 h-10 bg-[#0B0B10] border-2 border-aurora-teal rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[16px] text-aurora-teal">check</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-text-primary">Verificação de liquidez concluída</p>
+<p class="font-label-sm text-label-sm text-text-secondary">Ativos verificados em 3 redes diferentes</p>
+</div>
+<time class="font-label-sm text-label-sm text-text-secondary">10:42 AM</time>
+</div>
+<div class="relative flex items-center justify-between gap-4 pl-12 group">
+<div class="absolute left-0 w-10 h-10 bg-[#0B0B10] border-2 border-aurora-violet rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[16px] text-aurora-violet pulse-accent">sync</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-text-primary">Score de crédito on-chain</p>
+<p class="font-label-sm text-label-sm text-text-secondary">Processando histórico transacional (EVM)</p>
+</div>
+<time class="font-label-sm text-label-sm text-text-secondary">Agora</time>
+</div>
+<div class="relative flex items-center justify-between gap-4 pl-12 group opacity-50">
+<div class="absolute left-0 w-10 h-10 bg-[#0B0B10] border-2 border-white/20 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px] text-text-secondary">lock</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-text-secondary">Geração de chaves criptográficas</p>
+<p class="font-label-sm text-label-sm text-text-secondary">Pendente aprovação final</p>
+</div>
+<time class="font-label-sm text-label-sm text-text-secondary">--:--</time>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer (Mobile Only) -->
+<footer class="lg:hidden fixed bottom-0 left-0 w-full glass-panel rounded-none border-t border-glass-border flex justify-around items-center py-4 z-50">
+<a class="flex flex-col items-center gap-1 text-aurora-teal" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-secondary" href="#">
+<span class="material-symbols-outlined">credit_card</span>
+<span class="text-[10px]">Cartão</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-secondary" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-[10px]">Carteira</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-text-secondary" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px]">Ajustes</span>
+</a>
+</footer>
+<script>
+        // Optional micro-interaction: Subtle hover parallax for glass cards
+        document.querySelectorAll('.glass-panel').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 50;
+                const rotateY = (centerX - x) / 50;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+            });
+        });
+    </script>
+</body></html>
