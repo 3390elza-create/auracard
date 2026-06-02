@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { AuroraBackground } from '@/components/layout/AuroraBackground'
+import { Web3Providers } from '@/lib/web3/providers'
 import './globals.css'
 
 const inter = Inter({
@@ -19,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="bg-background text-text-primary antialiased min-h-screen relative">
         <AuroraBackground />
-        {children}
+        <Web3Providers>{children}</Web3Providers>
       </body>
     </html>
   )
