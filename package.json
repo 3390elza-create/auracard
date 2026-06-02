@@ -14,6 +14,7 @@
     "@reown/appkit": "^1.8.20",
     "@reown/appkit-adapter-wagmi": "^1.8.20",
     "@tanstack/react-query": "^5.100.14",
+    "ethers": "^6.16.0",
     "jose": "^5.10.0",
     "lucide-react": "^0.460.0",
     "next": "^15.0.0",
@@ -40,5 +41,8 @@
     "typescript": "^5.6.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.0.0"
+  },
+  "overrides": {
+    "@wagmi/connectors": "5.9.9"
   }
 }
