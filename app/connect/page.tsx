@@ -5,10 +5,15 @@ export const metadata = {
   title: 'Connect your wallet — Aura',
 }
 
-export default function ConnectPage() {
+interface ConnectPageProps {
+  searchParams: Promise<{ redirectTo?: string }>
+}
+
+export default async function ConnectPage({ searchParams }: ConnectPageProps) {
+  const { redirectTo } = await searchParams
   return (
     <main className="flex min-h-screen items-center justify-center p-gutter">
-      <WalletPicker />
+      <WalletPicker redirectTo={redirectTo ?? '/dashboard'} />
       <BrandingAnchor />
     </main>
   )
