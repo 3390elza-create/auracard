@@ -1,6 +1,6 @@
 import { BadgeCheck } from 'lucide-react'
 import { truncateAddress } from '@/lib/format'
-import type { WalletSession } from '@/lib/mock/types'
+import type { WalletSession } from '@/lib/web3/types'
 
 export function DashboardHeader({ wallet }: { wallet: WalletSession }) {
   return (
