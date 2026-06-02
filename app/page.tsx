@@ -1,9 +1,21 @@
+import { TopNav } from '@/components/layout/TopNav'
+import { Footer } from '@/components/layout/Footer'
+import { Hero } from '@/components/landing/Hero'
+import { BenefitsGrid } from '@/components/landing/BenefitsGrid'
+import { HowItWorks } from '@/components/landing/HowItWorks'
+import { ClosingCTA } from '@/components/landing/ClosingCTA'
+
 export default function LandingPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <h1 className="font-sans text-headline-md text-text-primary">
-        Aura — scaffold up
-      </h1>
-    </main>
+    <>
+      <TopNav />
+      <main className="mx-auto max-w-container-max px-gutter md:px-margin-desktop">
+        <Hero />
+        <BenefitsGrid />
+        <HowItWorks />
+        <ClosingCTA />
+      </main>
+      <Footer />
+    </>
   )
 }
