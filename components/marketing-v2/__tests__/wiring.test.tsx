@@ -1,12 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { IssueFlowProvider } from '../issue-flow/IssueFlowProvider'
+import { IssueCardFlow } from '../issue-flow/IssueCardFlow'
 import { HeroV2 } from '../HeroV2'
 import { ClosingCtaV2 } from '../ClosingCtaV2'
 import { PremiumCardSection } from '../PremiumCardSection'
 import { SiteFooterV2 } from '../SiteFooterV2'
 
-// next/link needs the app-router context at runtime; in this unit test we render
-// the components in isolation, so stub it with a plain anchor that preserves href.
+// next/link needs the app-router context at runtime; the footer renders link
+// columns, so stub it with a plain anchor that preserves href.
 vi.mock('next/link', () => ({
   default: (props: { href?: unknown; children?: unknown } & Record<string, unknown>) => {
     const { href, children, ...rest } = props
@@ -18,25 +20,53 @@ vi.mock('next/link', () => ({
   },
 }))
 
-describe('marketing-v2 wiring', () => {
-  it('hero Issue Card links to /connect', () => {
-    const html = renderToStaticMarkup(<HeroV2 />)
+// useSiweLogin pulls in wagmi/router context we don't mount in a unit test; the
+// modal only needs it on the connect step, so stub it to an idle state.
+vi.mock('@/lib/web3/hooks/useSiweLogin', () => ({
+  useSiweLogin: () => ({ state: { status: 'idle' }, start: () => {}, reset: () => {} }),
+}))
+
+describe('marketing-v2 issue-card flow wiring', () => {
+  it('hero CTA opens the flow as a button, not a /connect link', () => {
+    const html = renderToStaticMarkup(
+      <IssueFlowProvider>
+        <HeroV2 />
+      </IssueFlowProvider>,
+    )
     expect(html).toContain('Issue Card')
-    expect(html).toContain('href="/connect"')
-    // Learn More is the only other link and points at an in-page anchor, not /connect.
-    expect(html.match(/href="\/connect"/g)).toHaveLength(1)
+    expect(html).toContain('<button')
+    expect(html).not.toContain('href="/connect"')
   })
 
-  it('closing CTA links to /connect', () => {
-    const html = renderToStaticMarkup(<ClosingCtaV2 />)
-    expect(html).toContain("Issue Card")
-    expect(html.match(/href="\/connect"/g)).toHaveLength(1)
+  it('closing CTA opens the flow as a button, not a /connect link', () => {
+    const html = renderToStaticMarkup(
+      <IssueFlowProvider>
+        <ClosingCtaV2 />
+      </IssueFlowProvider>,
+    )
+    expect(html).toContain('<button')
+    expect(html).not.toContain('href="/connect"')
   })
 
-  it('premium Check Eligibility links to /connect', () => {
-    const html = renderToStaticMarkup(<PremiumCardSection />)
+  it('premium Check Eligibility opens the flow as a button, not a /connect link', () => {
+    const html = renderToStaticMarkup(
+      <IssueFlowProvider>
+        <PremiumCardSection />
+      </IssueFlowProvider>,
+    )
     expect(html).toContain('Check Eligibility')
-    expect(html.match(/href="\/connect"/g)).toHaveLength(1)
+    expect(html).toContain('<button')
+    expect(html).not.toContain('href="/connect"')
+  })
+
+  it('modal card-select step lists the three card tiers', () => {
+    const html = renderToStaticMarkup(<IssueCardFlow onClose={() => {}} />)
+    expect(html).toContain('Issue Card')
+    expect(html).toContain('Select the card')
+    expect(html).toContain('White')
+    expect(html).toContain('Blue')
+    expect(html).toContain('Metal')
+    expect(html).toContain('Continue')
   })
 
   it('footer contains no fabricated license numbers', () => {

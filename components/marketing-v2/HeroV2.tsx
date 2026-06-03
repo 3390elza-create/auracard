@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import { Sparkles, ArrowRight, CircleCheck } from 'lucide-react'
 import { HERO } from './content'
+import { IssueCardButton } from './issue-flow/IssueCardButton'
 
 export function HeroV2() {
   return (
@@ -20,9 +20,9 @@ export function HeroV2() {
           </h1>
           <p className="animate-fade-in-up-delay-2 mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-xl lg:mx-0 lg:mt-8">{HERO.subtitle}</p>
           <div className="animate-fade-in-up-delay-3 mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center lg:mt-10 lg:gap-4 lg:justify-start">
-            <Link href={HERO.ctaPrimary.href} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-button-v2 transition-transform hover:-translate-y-0.5">
+            <IssueCardButton className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-button-v2 transition-transform hover:-translate-y-0.5">
               {HERO.ctaPrimary.label}<ArrowRight className="h-5 w-5" />
-            </Link>
+            </IssueCardButton>
             <a href={HERO.ctaSecondary.href} className="inline-flex items-center justify-center rounded-2xl border border-border bg-card px-8 py-4 text-lg font-semibold text-foreground transition-colors hover:bg-secondary">{HERO.ctaSecondary.label}</a>
           </div>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground sm:text-lg lg:mt-10 lg:gap-x-6 lg:justify-start">

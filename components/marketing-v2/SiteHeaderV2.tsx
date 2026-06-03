@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ChevronDown, ArrowRight } from 'lucide-react'
 import { BRAND, NAV } from './content'
+import { IssueCardButton } from './issue-flow/IssueCardButton'
 
 export function SiteHeaderV2() {
   return (
@@ -21,9 +22,9 @@ export function SiteHeaderV2() {
             <span className="hidden sm:inline">English</span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <Link href="/connect" className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5">
+          <IssueCardButton className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5">
             Get Started<ArrowRight className="h-4 w-4" />
-          </Link>
+          </IssueCardButton>
         </div>
       </div>
     </header>
