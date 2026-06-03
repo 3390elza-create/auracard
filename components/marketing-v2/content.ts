@@ -75,7 +75,7 @@ export const PREMIUM = {
   ],
   cta: { label: 'Check Eligibility', href: '/connect' },
   image: '/marketing/metal-card.png',
-}
+} as const
 
 export const CLOSING = {
   heading: 'Ready to transform how you spend crypto?',
