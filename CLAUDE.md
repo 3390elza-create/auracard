@@ -33,7 +33,7 @@ The entire product UI is in English.
 2. Wallet login: Reown AppKit + wagmi/viem + SIWE
 3. Balances + card approval: read-only balances, eligibility logic
 4. Admin: connected users, card status
-5. Backend/onboarding: persistence, KYC
+5. Backend/onboarding: persistence (NO KYC — eligibility is read-only, no documents)
 6. Managed-trading vault (GATED): non-custodial contract, only after audit
 
 ## Hard rules

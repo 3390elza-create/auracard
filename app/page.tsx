@@ -1,21 +1,24 @@
-import { TopNav } from '@/components/layout/TopNav'
-import { Footer } from '@/components/layout/Footer'
+import { MarketingShell } from '@/components/layout/MarketingShell'
 import { Hero } from '@/components/landing/Hero'
+import { StatsStrip } from '@/components/landing/StatsStrip'
 import { BenefitsGrid } from '@/components/landing/BenefitsGrid'
+import { SupportedAssets } from '@/components/landing/SupportedAssets'
+import { SecuritySection } from '@/components/landing/SecuritySection'
 import { HowItWorks } from '@/components/landing/HowItWorks'
+import { FaqSection } from '@/components/landing/FaqSection'
 import { ClosingCTA } from '@/components/landing/ClosingCTA'
 
 export default function LandingPage() {
   return (
-    <>
-      <TopNav />
-      <main className="mx-auto max-w-container-max px-gutter md:px-margin-desktop">
-        <Hero />
-        <BenefitsGrid />
-        <HowItWorks />
-        <ClosingCTA />
-      </main>
-      <Footer />
-    </>
+    <MarketingShell>
+      <Hero />
+      <StatsStrip />
+      <BenefitsGrid />
+      <SupportedAssets />
+      <SecuritySection />
+      <HowItWorks />
+      <FaqSection />
+      <ClosingCTA />
+    </MarketingShell>
   )
 }

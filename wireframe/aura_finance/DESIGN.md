@@ -141,7 +141,7 @@ The typography system relies exclusively on **Inter** to achieve a modern, geome
 
 - **Headings:** Should be set with tight letter-spacing and substantial weight to create a strong editorial hierarchy. "Display" sizes are reserved for hero balances and marketing statements.
 - **Body Text:** Designed for maximum readability on dark backgrounds; avoid pure white (#FFFFFF) for long-form text, using the neutral `text-secondary` instead to reduce eye strain.
-- **Localization:** All labels and microcopy must adhere to Brazilian Portuguese conventions, ensuring that longer words common in Portuguese (e.g., "Transferência") do not break the tight grid layout.
+- **Localization:** The entire product UI is in **English** (per `CLAUDE.md`). Keep microcopy concise so labels do not break the tight grid layout. (Historical note: an earlier draft targeted Brazilian Portuguese; the product direction is now English-only.)
 
 ## Layout & Spacing
 

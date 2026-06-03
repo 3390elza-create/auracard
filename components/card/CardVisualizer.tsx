@@ -6,9 +6,16 @@ import { useRef } from 'react'
 export function CardVisualizer() {
   const cardRef = useRef<HTMLDivElement>(null)
 
+  function prefersReducedMotion() {
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    )
+  }
+
   function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const card = cardRef.current
-    if (!card) return
+    if (!card || prefersReducedMotion()) return
     const rect = card.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top

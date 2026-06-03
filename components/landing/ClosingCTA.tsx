@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react'
 import { Panel } from '@/components/ui/Panel'
 import { GradientButton } from '@/components/ui/GradientButton'
+import { MEMBER_COUNT } from '@/lib/content/marketing'
 
 export function ClosingCTA() {
   return (
@@ -13,7 +14,8 @@ export function ClosingCTA() {
             Ready to raise your financial standard?
           </h2>
           <p className="mx-auto max-w-xl text-body-lg text-text-secondary">
-            Join elite investors already benefiting from Aura around the world.
+            Join {MEMBER_COUNT} elite members already turning on-chain wealth into
+            real-world spending power.
           </p>
           <GradientButton
             href="/connect"
