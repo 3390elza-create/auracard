@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background:        '#0B0B10',
+        background:        'hsl(var(--background))',
         surface:           '#131318',
         'surface-low':     '#1B1B20',
         'surface-mid':     '#1F1F24',
@@ -21,6 +21,26 @@ const config: Config = {
         'glass-fill':      'rgba(255,255,255,0.07)',
         'glass-border':    'rgba(255,255,255,0.12)',
         'error':           '#FF6B6B',
+        // marketing-v2 semantic tokens (driven by CSS vars)
+        foreground:           'hsl(var(--foreground))',
+        card:                 'hsl(var(--card))',
+        'card-foreground':    'hsl(var(--card-foreground))',
+        popover:              'hsl(var(--popover))',
+        'popover-foreground': 'hsl(var(--popover-foreground))',
+        primary:              'hsl(var(--primary))',
+        'primary-foreground': 'hsl(var(--primary-foreground))',
+        'primary-light':      'hsl(var(--primary-light))',
+        'primary-dark':       'hsl(var(--primary-dark))',
+        secondary:            'hsl(var(--secondary))',
+        'secondary-foreground':'hsl(var(--secondary-foreground))',
+        muted:                'hsl(var(--muted))',
+        'muted-foreground':   'hsl(var(--muted-foreground))',
+        accent:               'hsl(var(--accent))',
+        'accent-foreground':  'hsl(var(--accent-foreground))',
+        border:               'hsl(var(--border))',
+        input:                'hsl(var(--input))',
+        ring:                 'hsl(var(--ring))',
+        success:              'hsl(var(--success))',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
@@ -61,6 +81,20 @@ const config: Config = {
       boxShadow: {
         'glow-violet': '0 0 20px rgba(124,92,255,0.4)',
         'glow-teal':   '0 0 8px rgba(45,212,191,0.6)',
+      },
+      keyframes: {
+        'fade-in-up': {
+          '0%':   { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        marquee: {
+          '0%':   { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-33.333%)' },
+        },
+      },
+      animation: {
+        'fade-in-up': 'fade-in-up 0.6s ease-out both',
+        marquee: 'marquee 40s linear infinite',
       },
     },
   },
