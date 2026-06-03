@@ -14,8 +14,8 @@ contracts/lib
 contracts/out
 contracts/cache
 contracts/broadcast
-# Docs and local assets
-docs
+# Local assets not needed in the image.
+# NOTE: do NOT ignore docs/ or *.md — /terms and /privacy read
+# docs/legal/*.md at build time (LegalDocument), and the build prerenders them.
 wireframe
-*.md
 "ChatGPT Image*"
