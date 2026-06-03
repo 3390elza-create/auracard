@@ -1,0 +1,7 @@
+# Caddy automatically provisions and renews a Let's Encrypt certificate for
+# $DOMAIN once DNS points at this server. It also preserves the client Host
+# header, which the app's SIWE verify route requires.
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy web:3000
+}

@@ -1,0 +1,47 @@
+# Production stack: Next.js (standalone) behind Caddy (automatic HTTPS).
+# Usage on the VPS:
+#   cp .env.production.example .env   # then fill it in
+#   docker compose up -d --build
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        # NEXT_PUBLIC_* are read from .env and baked into the build.
+        NEXT_PUBLIC_WC_PROJECT_ID: ${NEXT_PUBLIC_WC_PROJECT_ID}
+        NEXT_PUBLIC_RPC_URL: ${NEXT_PUBLIC_RPC_URL}
+        NEXT_PUBLIC_RPC_URL_BASE: ${NEXT_PUBLIC_RPC_URL_BASE}
+        NEXT_PUBLIC_RPC_URL_ARBITRUM: ${NEXT_PUBLIC_RPC_URL_ARBITRUM}
+        NEXT_PUBLIC_RPC_URL_POLYGON: ${NEXT_PUBLIC_RPC_URL_POLYGON}
+        NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA: ${NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA}
+        NEXT_PUBLIC_TEST_USDC_ADDRESS: ${NEXT_PUBLIC_TEST_USDC_ADDRESS}
+        NEXT_PUBLIC_VAULT_ADDRESS: ${NEXT_PUBLIC_VAULT_ADDRESS}
+    environment:
+      # Server-only secrets, read at runtime (NOT baked into the bundle).
+      SESSION_SECRET: ${SESSION_SECRET}
+      NONCE_SECRET: ${NONCE_SECRET}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+      NODE_ENV: production
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
