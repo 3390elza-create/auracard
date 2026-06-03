@@ -8,6 +8,7 @@ import { PremiumCardSection } from '@/components/marketing-v2/PremiumCardSection
 import { ClosingCtaV2 } from '@/components/marketing-v2/ClosingCtaV2'
 import { SiteFooterV2 } from '@/components/marketing-v2/SiteFooterV2'
 import { ScrollToTop } from '@/components/marketing-v2/ScrollToTop'
+import { IssueFlowProvider } from '@/components/marketing-v2/issue-flow/IssueFlowProvider'
 
 export const metadata = {
   title: 'AuraCard — Spend Crypto Like Cash. Everywhere.',
@@ -16,19 +17,21 @@ export const metadata = {
 
 export default function HomeV2() {
   return (
-    <div id="top" className="relative isolate z-0 min-h-screen bg-background text-foreground">
-      <SiteHeaderV2 />
-      <main className="overflow-hidden">
-        <HeroV2 />
-        <WalletMarquee />
-        <BackersStrip />
-        <FeaturesGrid />
-        <RewardsSection />
-        <PremiumCardSection />
-        <ClosingCtaV2 />
-      </main>
-      <SiteFooterV2 />
-      <ScrollToTop />
-    </div>
+    <IssueFlowProvider>
+      <div id="top" className="relative isolate z-0 min-h-screen bg-background text-foreground">
+        <SiteHeaderV2 />
+        <main className="overflow-hidden">
+          <HeroV2 />
+          <WalletMarquee />
+          <BackersStrip />
+          <FeaturesGrid />
+          <RewardsSection />
+          <PremiumCardSection />
+          <ClosingCtaV2 />
+        </main>
+        <SiteFooterV2 />
+        <ScrollToTop />
+      </div>
+    </IssueFlowProvider>
   )
 }

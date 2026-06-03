@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import { Star, Plane, Users, Sparkles, ArrowRight, type LucideIcon } from 'lucide-react'
 import { PREMIUM } from './content'
+import { IssueCardButton } from './issue-flow/IssueCardButton'
 
 type PerkIcon = (typeof PREMIUM.perks)[number]['icon']
 const ICONS: Record<PerkIcon, LucideIcon> = { Star, Plane, Users, Sparkles }
@@ -28,9 +28,9 @@ export function PremiumCardSection() {
                   )
                 })}
               </div>
-              <Link href={PREMIUM.cta.href} className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-4 text-lg font-semibold text-primary-foreground shadow-button-v2 transition-transform hover:-translate-y-0.5 sm:w-auto">
+              <IssueCardButton className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-4 text-lg font-semibold text-primary-foreground shadow-button-v2 transition-transform hover:-translate-y-0.5 sm:w-auto">
                 {PREMIUM.cta.label}<ArrowRight className="h-5 w-5" />
-              </Link>
+              </IssueCardButton>
             </div>
             <div className="mx-auto w-full max-w-[500px]">
               <img src={PREMIUM.image} alt="AuraCard metal card" className="w-full h-auto rounded-[1.5rem]" />

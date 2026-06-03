@@ -110,3 +110,45 @@ export const FOOTER = {
   disclaimer:
     'AuraCard services are provided in partnership with licensed financial institutions and card networks. Cryptocurrency-to-fiat conversions are executed at prevailing market rates through regulated liquidity partners. Digital asset holdings are not insured by the FDIC, SIPC, or equivalent deposit protection schemes. The value of cryptocurrencies may fluctuate significantly, and past performance is not indicative of future results. By using our services you agree to our Terms of Service and Privacy Policy.',
 }
+
+// Card tiers shown in the Issue-Card modal flow. Selection is purely a visual
+// lead-in; real provisioning happens in the dashboard after wallet connect.
+export type IssueCardId = 'white' | 'blue' | 'metal'
+
+export interface IssueCardOption {
+  id: IssueCardId
+  name: string
+  blurb: string
+  cashback: string
+  annualFee: string
+  requirement?: string
+  perks: string[]
+}
+
+export const ISSUE_CARDS: IssueCardOption[] = [
+  {
+    id: 'white',
+    name: 'White',
+    blurb: 'Earn up to 5% back in BTC, ETH, or stablecoins on every purchase.',
+    cashback: 'Up to 5%',
+    annualFee: 'Free',
+    perks: ['Airport lounges', '24/7 concierge', 'Hotel upgrades', 'Priority support'],
+  },
+  {
+    id: 'blue',
+    name: 'Blue',
+    blurb: 'Earn up to 5% back in BTC, ETH, or stablecoins on every purchase.',
+    cashback: 'Up to 5%',
+    annualFee: 'Free',
+    perks: ['Airport lounges', '24/7 concierge', 'Hotel upgrades', 'Priority support'],
+  },
+  {
+    id: 'metal',
+    name: 'Metal',
+    blurb: 'Hold $20,000 or more in your portfolio and receive the physical metal card.',
+    cashback: 'Up to 5%',
+    annualFee: 'Free',
+    requirement: '$20K+',
+    perks: ['Premium metal design', 'Airport lounges', 'Dedicated concierge', '2x rewards multiplier'],
+  },
+]
