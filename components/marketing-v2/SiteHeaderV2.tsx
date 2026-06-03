@@ -16,7 +16,7 @@ export function SiteHeaderV2() {
           ))}
         </nav>
         <div className="flex items-center gap-2 md:gap-3">
-          <button className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-card/80 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary" aria-label="Language">
+          <button type="button" className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-card/80 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary" aria-label="Language">
             <span className="text-base">🇬🇧</span>
             <span className="hidden sm:inline">English</span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />

@@ -1,7 +1,8 @@
 import { Wallet, Globe, Smartphone, ShieldCheck, Zap, BadgeDollarSign, type LucideIcon } from 'lucide-react'
 import { FEATURES } from './content'
 
-const ICONS: Record<string, LucideIcon> = { Wallet, Globe, Smartphone, ShieldCheck, Zap, BadgeDollarSign }
+type FeatureIcon = (typeof FEATURES)[number]['icon']
+const ICONS: Record<FeatureIcon, LucideIcon> = { Wallet, Globe, Smartphone, ShieldCheck, Zap, BadgeDollarSign }
 
 export function FeaturesGrid() {
   return (
