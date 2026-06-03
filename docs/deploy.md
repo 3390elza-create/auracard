@@ -34,11 +34,19 @@ sudo usermod -aG docker $USER && newgrp docker   # run docker without sudo
 docker --version && docker compose version
 ```
 
-## 3. Get the code
+## 3. Get the code onto the VPS
+Deploy from the **`main`** branch. Two options:
+
+**Option A — via a Git host (recommended):** push this repo to GitHub/GitLab, then:
 ```bash
-git clone <YOUR_REPO_URL> aura && cd aura
-git checkout feat/card-approval-vault
+git clone <YOUR_REPO_URL> aura && cd aura    # clones the default branch (main)
 ```
+
+**Option B — copy directly (no Git host):** from your machine,
+```bash
+rsync -av --exclude node_modules --exclude .next ./ user@208.109.32.79:~/aura/
+```
+then `ssh user@208.109.32.79 && cd aura`.
 
 ## 4. Configure environment
 ```bash
