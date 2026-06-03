@@ -1,7 +1,7 @@
 import { Check, RefreshCw, Lock } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Panel } from '@/components/ui/Panel'
-import type { TimelineEvent, TimelineEventStatus } from '@/lib/mock/types'
+import type { TimelineEvent, TimelineEventStatus } from '@/lib/dashboard/types'
 
 const statusIcon: Record<TimelineEventStatus, ReactNode> = {
   completed:   <Check     className="h-4 w-4 text-aurora-teal" />,

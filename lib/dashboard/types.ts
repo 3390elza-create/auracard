@@ -1,6 +1,5 @@
-import type { Address } from '@/lib/web3/types'
-
-export type { Address }
+// Real dashboard domain types. These describe data derived from the connected
+// wallet (on-chain balances) and from real session/load state — never mocked.
 
 export type AssetSymbol = 'BTC' | 'ETH' | 'USDC'
 

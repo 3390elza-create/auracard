@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Panel } from '@/components/ui/Panel'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { StepDot } from '@/components/ui/StepDot'
-import type { ApprovalProgress, ApprovalStep, StepStatus } from '@/lib/mock/types'
+import type { ApprovalProgress, ApprovalStep, StepStatus } from '@/lib/dashboard/types'
 
 const stepIcons: Record<ApprovalStep['id'], ReactNode> = {
   wallet_connected: <Activity   className="h-5 w-5" />,

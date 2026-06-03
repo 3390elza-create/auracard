@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react'
 import type { ReactNode } from 'react'
-import type { StepStatus } from '@/lib/mock/types'
+import type { StepStatus } from '@/lib/dashboard/types'
 
 interface StepDotProps {
   status: StepStatus

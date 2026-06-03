@@ -2,7 +2,7 @@ import { Panel } from '@/components/ui/Panel'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { Chip } from '@/components/ui/Chip'
 import { formatCompactUSD } from '@/lib/format'
-import type { EstimatedLimit } from '@/lib/mock/types'
+import type { EstimatedLimit } from '@/lib/dashboard/types'
 
 export function EstimatedLimitPanel({ limit }: { limit: EstimatedLimit }) {
   return (

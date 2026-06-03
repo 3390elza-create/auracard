@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Panel } from '@/components/ui/Panel'
 import { IconBadge } from '@/components/ui/IconBadge'
 import { formatUSD } from '@/lib/format'
-import type { AssetBalance, AssetSymbol, EligibleBalance } from '@/lib/mock/types'
+import type { AssetBalance, AssetSymbol, EligibleBalance } from '@/lib/dashboard/types'
 
 type AssetVisual = { icon: ReactNode; tone: 'orange' | 'blue' | 'teal' }
 
