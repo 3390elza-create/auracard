@@ -20,6 +20,7 @@ const config: Config = {
         'aurora-teal':     '#2DD4BF',
         'glass-fill':      'rgba(255,255,255,0.07)',
         'glass-border':    'rgba(255,255,255,0.12)',
+        'error':           '#FF6B6B',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
