@@ -5,3 +5,5 @@ process.env.NONCE_SECRET ||= '1'.repeat(64)
 process.env.SESSION_TTL_SECONDS ||= '604800'
 process.env.NEXT_PUBLIC_WC_PROJECT_ID ||= 'test_project_id'
 process.env.NEXT_PUBLIC_RPC_URL ||= 'https://eth-mainnet.test/v2/test'
+process.env.NEXT_PUBLIC_VAULT_ADDRESS ||= '0xAAaA000000000000000000000000000000000001'
+process.env.NEXT_PUBLIC_TEST_USDC_ADDRESS ||= '0xbbbB000000000000000000000000000000000001'
