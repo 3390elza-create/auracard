@@ -2,8 +2,9 @@
 
 import Image from 'next/image'
 import { useRef } from 'react'
+import type { DemoCard } from '@/lib/card/generateDemoCard'
 
-export function CardVisualizer() {
+export function CardVisualizer({ card }: { card?: DemoCard }) {
   const cardRef = useRef<HTMLDivElement>(null)
 
   function prefersReducedMotion() {
@@ -14,14 +15,14 @@ export function CardVisualizer() {
   }
 
   function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const card = cardRef.current
-    if (!card || prefersReducedMotion()) return
-    const rect = card.getBoundingClientRect()
+    const el = cardRef.current
+    if (!el || prefersReducedMotion()) return
+    const rect = el.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     const rx = (y - rect.height / 2) / 20
     const ry = (rect.width / 2 - x) / 20
-    card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`
+    el.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`
   }
 
   function onMouseLeave() {
@@ -43,7 +44,9 @@ export function CardVisualizer() {
       >
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
-            <span className="text-label-sm uppercase tracking-[0.2em] text-text-secondary">Aura Elite</span>
+          <span className="text-label-sm uppercase tracking-[0.2em] text-text-secondary">
+            Aura Elite {card && <span className="ml-2 rounded bg-white/15 px-1.5 py-0.5 text-[9px] text-white">DEMO</span>}
+          </span>
             <div className="relative mt-4 h-10 w-12 rounded-md bg-gradient-to-br from-yellow-600 to-yellow-200 opacity-80">
               <div className="absolute inset-0 rounded-md border border-white/20" />
             </div>
@@ -51,13 +54,18 @@ export function CardVisualizer() {
           <Image src="/logo.svg" alt="" width={48} height={48} className="opacity-80" aria-hidden />
         </div>
         <div className="space-y-4">
-          <div className="text-headline-md tracking-[0.1em] text-white/90">
-            •••• •••• •••• 8821
-          </div>
+        <div className="text-headline-md tracking-[0.1em] text-white/90">
+          {card ? card.number : '•••• •••• •••• 8821'}
+        </div>
           <div className="flex items-end justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] uppercase tracking-widest text-text-secondary">Card Holder</span>
-              <span className="text-label-md text-white">GENESIS MEMBER</span>
+              <span className="text-label-md text-white">{card ? card.holder : 'GENESIS MEMBER'}</span>
+              {card && (
+                <span className="mt-1 text-[10px] uppercase tracking-widest text-text-secondary">
+                  Exp {String(card.expiryMonth).padStart(2, '0')}/{card.expiryYear} · CVV {card.cvv}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-red-500/80 mix-blend-screen" />
