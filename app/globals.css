@@ -56,7 +56,7 @@
 
 @layer base {
   :root, .dark {
-    --background: 240 11% 6%;
+    --background: 240 19% 5%; /* exact HSL of #0B0B10 — zero regression on existing dark screens */
     --foreground: 195 25% 98%;
     --card: 240 9% 9%;
     --card-foreground: 195 25% 98%;
@@ -72,6 +72,7 @@
     --muted-foreground: 222 18% 68%;
     --accent: 252 100% 68%;
     --accent-foreground: 0 0% 100%;
+    /* white only makes sense with an opacity modifier (e.g. border-border/12); don't use bare border-border in the dark app */
     --border: 0 0% 100%;
     --input: 0 0% 100%;
     --ring: 252 100% 68%;
