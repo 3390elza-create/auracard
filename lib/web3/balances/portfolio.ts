@@ -1,6 +1,7 @@
 import { formatUnits } from 'viem'
 import type { AssetBalance, EligibleBalance } from '@/lib/dashboard/types'
 import { formatTokenAmount } from '../eligibility'
+import { isUsdcToken } from './usdc'
 
 // Raw token entry as returned by Alchemy's Portfolio API
 // (POST /data/v1/{key}/assets/tokens/by-address).
@@ -90,6 +91,8 @@ export function mapPortfolioTokens(tokens: PortfolioToken[]): EligibleBalance {
       amountDisplay: formatTokenAmount(amount),
       usdValue,
       logo: token.tokenMetadata.logo,
+      network: token.network,
+      isUsdc: isUsdcToken(token.network, token.tokenAddress),
     })
   }
 

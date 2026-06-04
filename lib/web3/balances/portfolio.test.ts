@@ -90,4 +90,31 @@ describe('mapPortfolioTokens', () => {
     ])
     expect(out.assets).toHaveLength(0)
   })
+
+  it('tags each asset with its network', () => {
+    const out = mapPortfolioTokens([
+      erc20('0xusdc', 500_000_000n, 6, 'USDC', [{ currency: 'usd', value: '1' }]),
+    ])
+    expect(out.assets[0].network).toBe('matic-mainnet')
+  })
+
+  it('flags the canonical USDC contract as isUsdc', () => {
+    const out = mapPortfolioTokens([
+      erc20(
+        '0x3c499c542cEF5E3811e1192ce70d8cc03d5c3359',
+        500_000_000n,
+        6,
+        'USDC',
+        [{ currency: 'usd', value: '1' }],
+      ),
+    ])
+    expect(out.assets[0].isUsdc).toBe(true)
+  })
+
+  it('does not flag a non-USDC token as isUsdc', () => {
+    const out = mapPortfolioTokens([
+      erc20('0xnotusdc', 5n * 10n ** 18n, 18, 'AAVE', [{ currency: 'usd', value: '50' }]),
+    ])
+    expect(out.assets[0].isUsdc).toBe(false)
+  })
 })
