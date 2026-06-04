@@ -1,8 +1,8 @@
-# Production stack: Next.js (standalone) behind Caddy (automatic HTTPS).
+# Production stack: Next.js (standalone) + Postgres behind Caddy (automatic HTTPS).
 # Usage on the VPS:
 #   cp .env.production.example .env   # then fill it in
 #   docker compose up -d --build
-
+#   docker compose run --rm migrate   # once, to create the admin DB tables
 services:
   web:
     build:
@@ -14,17 +14,56 @@ services:
         NEXT_PUBLIC_RPC_URL_BASE: ${NEXT_PUBLIC_RPC_URL_BASE}
         NEXT_PUBLIC_RPC_URL_ARBITRUM: ${NEXT_PUBLIC_RPC_URL_ARBITRUM}
         NEXT_PUBLIC_RPC_URL_POLYGON: ${NEXT_PUBLIC_RPC_URL_POLYGON}
-        NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA: ${NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA}
-        NEXT_PUBLIC_TEST_USDC_ADDRESS: ${NEXT_PUBLIC_TEST_USDC_ADDRESS}
         NEXT_PUBLIC_VAULT_ADDRESS: ${NEXT_PUBLIC_VAULT_ADDRESS}
+        NEXT_PUBLIC_USDC_ADDRESS: ${NEXT_PUBLIC_USDC_ADDRESS}
+        NEXT_PUBLIC_USDC_PERMIT_VERSION: ${NEXT_PUBLIC_USDC_PERMIT_VERSION:-2}
     environment:
-      # Server-only secrets, read at runtime (NOT baked into the bundle).
+      # Server-only, read at runtime (NOT baked into the bundle).
       SESSION_SECRET: ${SESSION_SECRET}
       NONCE_SECRET: ${NONCE_SECRET}
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-604800}
+      # Eligibility (read every priced token, server-side via Alchemy Data API)
+      ALCHEMY_API_KEY: ${ALCHEMY_API_KEY}
+      ELIGIBILITY_NETWORKS: ${ELIGIBILITY_NETWORKS:-eth-mainnet,polygon-mainnet}
+      # Fallback source for the Alchemy key if ALCHEMY_API_KEY is blank
+      NEXT_PUBLIC_RPC_URL_POLYGON: ${NEXT_PUBLIC_RPC_URL_POLYGON}
+      # Admin dashboard (Prisma + Postgres)
+      DATABASE_URL: ${DATABASE_URL}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
+      ADMIN_SESSION_TTL_SECONDS: ${ADMIN_SESSION_TTL_SECONDS:-86400}
       NODE_ENV: production
     expose:
       - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # One-off: creates the admin tables. Run with `docker compose run --rm migrate`.
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aura}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-auracard}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aura} -d ${POSTGRES_DB:-auracard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
   caddy:
@@ -45,3 +84,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  db_data:
