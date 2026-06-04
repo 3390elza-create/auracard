@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CardStatus {
+  pending
+  active
+  suspended
+}
+
+model User {
+  id            String     @id @default(cuid())
+  walletAddress String     @unique // EIP-55 checksummed
+  chainId       Int
+  cardStatus    CardStatus @default(pending)
+  firstSeenAt   DateTime   @default(now())
+  lastLoginAt   DateTime   @updatedAt
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique // stored lowercased
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
