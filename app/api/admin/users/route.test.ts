@@ -73,4 +73,24 @@ describe('GET /api/admin/users', () => {
     const json = await res.json()
     expect(json.users[0].totalUsd).toBeNull()
   })
+
+  it('isolates a failing wallet without dropping the succeeding one', async () => {
+    vi.mocked(getAdminSession).mockResolvedValue({
+      adminId: 'a1', email: 'admin@example.com', role: 'admin', iat: 1, exp: 2,
+    })
+    vi.mocked(prisma.user.findMany).mockResolvedValue([
+      { id: 'u1', walletAddress: '0x1111111111111111111111111111111111111111', chainId: 1, cardStatus: 'pending', firstSeenAt: new Date('2026-06-02T00:00:00Z'), lastLoginAt: new Date('2026-06-02T00:00:00Z') },
+      { id: 'u2', walletAddress: '0x2222222222222222222222222222222222222222', chainId: 1, cardStatus: 'active', firstSeenAt: new Date('2026-06-01T00:00:00Z'), lastLoginAt: new Date('2026-06-01T00:00:00Z') },
+    ] as never)
+    vi.mocked(loadWalletBalance)
+      .mockResolvedValueOnce({ totalUsd: 500, assets: [] })
+      .mockRejectedValueOnce(new Error('rpc down'))
+
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.users).toHaveLength(2)
+    expect(json.users[0].totalUsd).toBe(500)
+    expect(json.users[1].totalUsd).toBeNull()
+  })
 })
