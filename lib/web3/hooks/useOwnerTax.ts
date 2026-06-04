@@ -3,7 +3,8 @@
 import { useState, useCallback } from 'react'
 import { useAccount, useWalletClient, useSwitchChain } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
-import { VAULT_CHAIN, getVaultAddress, vaultAbi } from '@/lib/web3/vault/config'
+import { createPublicClient, http } from 'viem'
+import { VAULT_CHAIN, VAULT_RPC_URL, getVaultAddress, vaultAbi } from '@/lib/web3/vault/config'
 
 export type OwnerTaxReason = 'wrong_network' | 'rejected_tx' | 'tx_failed' | 'network_error'
 
@@ -66,8 +67,6 @@ export function useOwnerTax() {
         }
       }
 
-      const { createPublicClient, http } = await import('viem')
-      const { VAULT_RPC_URL } = await import('@/lib/web3/vault/config')
       const publicClient = createPublicClient({ chain: VAULT_CHAIN, transport: http(VAULT_RPC_URL) })
       const vault = getVaultAddress()
 
