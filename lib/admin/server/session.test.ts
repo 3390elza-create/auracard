@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
+import { SignJWT } from 'jose'
 import { signAdminSession, verifyAdminSession } from './session'
 
 beforeAll(() => {
@@ -21,5 +22,17 @@ describe('admin session', () => {
 
   it('returns null for garbage', async () => {
     expect(await verifyAdminSession('not-a-jwt')).toBeNull()
+  })
+
+  it('returns null for an expired token', async () => {
+    const secret = new TextEncoder().encode(process.env.ADMIN_SESSION_SECRET)
+    const past = Math.floor(Date.now() / 1000) - 60
+    const expired = await new SignJWT({ adminId: 'abc123', email: 'admin@example.com', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject('abc123')
+      .setIssuedAt(past - 60)
+      .setExpirationTime(past)
+      .sign(secret)
+    expect(await verifyAdminSession(expired)).toBeNull()
   })
 })
