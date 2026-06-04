@@ -1,7 +1,7 @@
-import { Geist } from 'next/font/google'
+import localFont from 'next/font/local'
 
-const geist = Geist({
-  subsets: ['latin'],
+const geist = localFont({
+  src: '../fonts/geist.woff2',
   display: 'swap',
   variable: '--font-geist',
 })
