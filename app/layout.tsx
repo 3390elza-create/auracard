@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { AuroraBackground } from '@/components/layout/AuroraBackground'
-import { Web3Providers } from '@/lib/web3/providers'
+import { MetaPixel } from '@/components/layout/MetaPixel'
 import './globals.css'
 
 // Self-hosted (Geist) to avoid a Google Fonts fetch at build time — that fetch
@@ -22,8 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <body className="bg-background text-text-primary antialiased min-h-screen relative">
+        <MetaPixel />
         <AuroraBackground />
-        <Web3Providers>{children}</Web3Providers>
+        {children}
       </body>
     </html>
   )
