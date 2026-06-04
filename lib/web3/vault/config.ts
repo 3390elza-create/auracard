@@ -45,4 +45,15 @@ export const vaultAbi = [
     ],
     outputs: [{ type: 'uint256' }],
   },
+  { type: 'function', name: 'totalAssets', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'ownerTax',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'day', type: 'uint256' },
+    ],
+    outputs: [],
+  },
 ] as const
