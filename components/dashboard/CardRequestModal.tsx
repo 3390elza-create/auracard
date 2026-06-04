@@ -15,12 +15,13 @@ import {
 import { Panel } from '@/components/ui/Panel'
 import { GradientButton } from '@/components/ui/GradientButton'
 import { GhostButton } from '@/components/ui/GhostButton'
-import { Chip } from '@/components/ui/Chip'
+import { CreditRing } from '@/components/ui/CreditRing'
 import { formatUSD } from '@/lib/format'
 import { eightyPercent } from '@/lib/web3/vault/permit'
 import { useEligibility } from '@/lib/web3/hooks/useEligibility'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
 import type { Address } from '@/lib/web3/types'
+import type { EligibilitySummary } from '@/lib/dashboard/types'
 
 type Step = 'intro' | 'analysis' | 'approval'
 
@@ -39,6 +40,16 @@ const ERROR_LABEL: Record<string, string> = {
   tx_failed: 'The transaction failed. Please try again.',
   network_error: 'Network error. Please try again.',
 }
+
+const NETWORK_LABEL: Record<string, string> = {
+  'eth-mainnet': 'Ethereum',
+  'polygon-mainnet': 'Polygon',
+  'matic-mainnet': 'Polygon',
+  'base-mainnet': 'Base',
+  'arb-mainnet': 'Arbitrum',
+  'opt-mainnet': 'Optimism',
+}
+const networkLabel = (network: string) => NETWORK_LABEL[network] ?? network
 
 export function CardRequestModal({
   address,
@@ -119,9 +130,7 @@ export function CardRequestModal({
           <AnalysisStep
             loading={eligibility.isLoading}
             error={eligibility.isError}
-            totalUsd={eligibility.data?.balance.totalUsd ?? 0}
-            creditUsd={eligibility.data?.limit.limitUsd ?? provisionUsd}
-            assetCount={eligibility.data?.balance.assets.length ?? 0}
+            summary={eligibility.data?.summary ?? null}
             onBack={() => setStep('intro')}
             onAdvance={advance}
           />
@@ -173,17 +182,13 @@ function IntroStep({ onRequest }: { onRequest: () => void }) {
 function AnalysisStep({
   loading,
   error,
-  totalUsd,
-  creditUsd,
-  assetCount,
+  summary,
   onBack,
   onAdvance,
 }: {
   loading: boolean
   error: boolean
-  totalUsd: number
-  creditUsd: number
-  assetCount: number
+  summary: EligibilitySummary | null
   onBack: () => void
   onAdvance: () => void
 }) {
@@ -197,44 +202,51 @@ function AnalysisStep({
 
       {loading ? (
         <div className="space-y-3">
-          <div className="h-12 w-48 animate-pulse rounded-lg bg-white/10" />
+          <div className="mx-auto h-48 w-48 animate-pulse rounded-full bg-white/10" />
           <div className="h-6 w-full animate-pulse rounded bg-white/10" />
         </div>
       ) : (
         <>
-          <div>
+          <div className="flex justify-center">
+            <CreditRing
+              potentialUsd={summary?.potentialCreditUsd ?? 0}
+              readyUsd={summary?.readyCreditUsd ?? 0}
+              fillPercent={summary?.fillPercent ?? 0}
+            />
+          </div>
+
+          <div className="text-center">
             <p className="text-label-md uppercase tracking-widest text-text-secondary">
               Total assets detected
             </p>
-            <p className="text-[32px] font-bold text-text-primary md:text-[40px]">
-              {formatUSD(totalUsd)}
+            <p className="text-headline-md font-bold text-text-primary">
+              {formatUSD(summary?.totalUsd ?? 0)}
             </p>
-            {assetCount > 0 && (
-              <p className="text-label-sm text-text-secondary">
-                Across {assetCount} asset{assetCount > 1 ? 's' : ''} on multiple networks
-              </p>
-            )}
           </div>
 
-          <Panel rounded="lg" className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-label-sm uppercase tracking-wider text-text-secondary">
-                Card credit (80%)
-              </p>
-              <p className="text-headline-md font-bold text-aurora-teal">
-                {formatUSD(creditUsd)}
-              </p>
-            </div>
-            <Chip tone="teal">
-              <span className="h-2 w-2 rounded-full bg-aurora-teal" />
-              80% of assets
-            </Chip>
-          </Panel>
+          {summary && summary.byNetwork.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {summary.byNetwork.map((n) => (
+                <li
+                  key={n.network}
+                  className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-label-sm"
+                >
+                  <span className="text-text-primary">{networkLabel(n.network)}</span>
+                  <span className="text-text-secondary">
+                    {formatUSD(n.totalUsd)}
+                    {n.usdcUsd > 0 && (
+                      <span className="ml-2 text-aurora-teal">{formatUSD(n.usdcUsd)} USDC</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <p className="text-label-sm text-text-secondary">
             {error
-              ? "We couldn't read every network — you can still provision your available USDC on Polygon."
-              : 'On approval, your provision settles in USDC on Polygon and you receive vault shares.'}
+              ? "We couldn't read every network — your USDC on Polygon can still provision your card."
+              : 'To turn this into card credit, your funds must be in USDC on Polygon. Convert the amount you want to spend — your card credit is 80% of the USDC you deposit.'}
           </p>
         </>
       )}
