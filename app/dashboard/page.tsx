@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileTabBar } from '@/components/layout/MobileTabBar'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
@@ -7,7 +8,7 @@ import { ApprovalStepper } from '@/components/dashboard/ApprovalStepper'
 import { EligibleBalancePanel } from '@/components/dashboard/EligibleBalancePanel'
 import { EstimatedLimitPanel } from '@/components/dashboard/EstimatedLimitPanel'
 import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline'
-import { CardActivationPanel } from '@/components/dashboard/CardActivationPanel'
+import { CardRequestModal } from '@/components/dashboard/CardRequestModal'
 import { CardVisualizer } from '@/components/card/CardVisualizer'
 import { Panel } from '@/components/ui/Panel'
 import { useSession } from '@/lib/web3/hooks/useSession'
@@ -24,6 +25,19 @@ export default function DashboardPage() {
   const session = useSession()
   const address = session.status === 'authenticated' ? session.address : undefined
   const position = useVaultPosition(address)
+
+  // The card-request modal is the primary path: it opens automatically once we
+  // know the wallet has no card yet, and stays mounted until the user dismisses
+  // it (so its success screen survives the position refetch).
+  const [modalOpen, setModalOpen] = useState(false)
+  const [autoOpened, setAutoOpened] = useState(false)
+  const needsCard = Boolean(address) && !position.isError && Boolean(position.data) && !position.data?.isActive
+  useEffect(() => {
+    if (needsCard && !autoOpened) {
+      setModalOpen(true)
+      setAutoOpened(true)
+    }
+  }, [needsCard, autoOpened])
 
   if (session.status !== 'authenticated') return null
 
@@ -83,7 +97,6 @@ export default function DashboardPage() {
             <>
               <EligibleBalancePanel balance={balance} />
               <EstimatedLimitPanel limit={limit} />
-              <CardActivationPanel position={pos} />
             </>
           )}
           {phase === 'loading' && (
@@ -94,7 +107,7 @@ export default function DashboardPage() {
           {phase === 'error' && (
             <Panel rounded="xl" className="p-stack-lg md:col-span-2">
               <p className="text-body-md text-text-secondary">
-                Couldn&apos;t read your Base Sepolia position. This is read-only — your funds are untouched.
+                Couldn&apos;t read your Polygon position. This is read-only — your funds are untouched.
               </p>
             </Panel>
           )}
@@ -103,6 +116,14 @@ export default function DashboardPage() {
         <ActivityTimeline events={deriveTimeline(derived)} />
       </main>
       <MobileTabBar />
+
+      {modalOpen && pos && (
+        <CardRequestModal
+          address={session.address}
+          usdcBalance={pos.usdcBalance}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

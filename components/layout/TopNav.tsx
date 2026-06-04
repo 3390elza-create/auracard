@@ -23,7 +23,7 @@ export function TopNav() {
     <nav className="sticky top-0 z-50 w-full border-b border-glass-border bg-glass-fill backdrop-blur-md">
       <div className="mx-auto flex max-w-container-max items-center justify-between px-gutter py-4">
         <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-          <Image src="/logo.svg" alt="Aura" width={40} height={40} />
+          <Image src="/logo.png" alt="Aura" width={40} height={40} />
           <span className="text-headline-md font-bold tracking-tight text-text-primary">Aura</span>
         </Link>
 

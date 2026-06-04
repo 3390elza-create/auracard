@@ -9,7 +9,6 @@ export function SiteHeaderV2() {
       <div className="container-v2 flex h-20 items-center justify-between relative">
         <Link href="#top" className="flex shrink-0 items-center gap-2" aria-label={`${BRAND.name} homepage`}>
           <img src={BRAND.logo} alt={BRAND.name} className="h-8 w-auto md:h-10" />
-          <span className="text-xl font-bold tracking-tight text-foreground">{BRAND.name}</span>
         </Link>
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-10 text-base text-muted-foreground lg:flex">
           {NAV.map((n) => (

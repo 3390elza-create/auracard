@@ -7,9 +7,9 @@ import {
   VAULT_CHAIN,
   VAULT_RPC_URL,
   getVaultAddress,
-  getTestUsdcAddress,
+  getUsdcAddress,
   vaultAbi,
-  testUsdcAbi,
+  usdcAbi,
 } from '@/lib/web3/vault/config'
 
 export interface VaultPosition {
@@ -23,10 +23,10 @@ export async function readVaultPosition(address: Address): Promise<VaultPosition
   const user = getAddress(address)
   const client = createPublicClient({ chain: VAULT_CHAIN, transport: http(VAULT_RPC_URL) })
   const vault = getVaultAddress()
-  const usdc = getTestUsdcAddress()
+  const usdc = getUsdcAddress()
 
   const [usdcBalance, shares] = await Promise.all([
-    client.readContract({ address: usdc, abi: testUsdcAbi, functionName: 'balanceOf', args: [user] }),
+    client.readContract({ address: usdc, abi: usdcAbi, functionName: 'balanceOf', args: [user] }),
     client.readContract({ address: vault, abi: vaultAbi, functionName: 'balanceOf', args: [user] }),
   ])
   const depositedAssets =

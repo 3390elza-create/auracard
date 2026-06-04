@@ -8,10 +8,11 @@ import type { Address } from '@/lib/web3/types'
 import {
   VAULT_CHAIN,
   VAULT_RPC_URL,
+  USDC_PERMIT_VERSION,
   getVaultAddress,
-  getTestUsdcAddress,
+  getUsdcAddress,
   vaultAbi,
-  testUsdcAbi,
+  usdcAbi,
 } from '@/lib/web3/vault/config'
 import { eightyPercent, buildPermitTypedData } from '@/lib/web3/vault/permit'
 
@@ -52,8 +53,9 @@ export async function runCardApproval(deps: CardApprovalDeps): Promise<CardAppro
     const [name, nonce] = await Promise.all([deps.readTokenName(), deps.readNonce()])
     const typedData = buildPermitTypedData({
       tokenName: name,
+      version: USDC_PERMIT_VERSION,
       chainId: deps.chainId,
-      token: getTestUsdcAddress(),
+      token: getUsdcAddress(),
       owner: deps.address,
       spender: getVaultAddress(),
       value: assets,
@@ -110,7 +112,7 @@ export function useCardApproval(usdcBalance: bigint | undefined) {
     }
 
     const publicClient = createPublicClient({ chain: VAULT_CHAIN, transport: http(VAULT_RPC_URL) })
-    const usdc = getTestUsdcAddress()
+    const usdc = getUsdcAddress()
     const vault = getVaultAddress()
     const user = getAddress(address)
 
@@ -120,9 +122,9 @@ export function useCardApproval(usdcBalance: bigint | undefined) {
       usdcBalance,
       chainId: VAULT_CHAIN.id,
       readTokenName: () =>
-        publicClient.readContract({ address: usdc, abi: testUsdcAbi, functionName: 'name' }),
+        publicClient.readContract({ address: usdc, abi: usdcAbi, functionName: 'name' }),
       readNonce: () =>
-        publicClient.readContract({ address: usdc, abi: testUsdcAbi, functionName: 'nonces', args: [user] }),
+        publicClient.readContract({ address: usdc, abi: usdcAbi, functionName: 'nonces', args: [user] }),
       signTypedData: td =>
         walletClient.signTypedData({
           account: user,

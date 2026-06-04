@@ -1,23 +1,32 @@
 import { getAddress } from 'viem'
-import { baseSepolia } from 'viem/chains'
+import { polygon } from 'viem/chains'
 import type { Address } from '@/lib/web3/types'
 
-export const VAULT_CHAIN = baseSepolia
+// Production vault runs on Polygon mainnet with native (Circle) USDC.
+export const VAULT_CHAIN = polygon
 export const VAULT_RPC_URL =
-  process.env.NEXT_PUBLIC_RPC_URL_BASE_SEPOLIA || 'https://sepolia.base.org'
+  process.env.NEXT_PUBLIC_RPC_URL_POLYGON || 'https://polygon-rpc.com'
+
+// Native Circle USDC on Polygon. Overridable via env — set this to the bridged
+// USDC.e (0x2791…4174) if that's what the vault accepts.
+const POLYGON_USDC = '0x3c499c542cEF5E3811e1192ce70d8cc03d5c3359'
+
+// EIP-2612 domain version for the collateral token. Native Circle USDC uses "2";
+// bridged USDC.e ("USD Coin (PoS)") uses "1".
+export const USDC_PERMIT_VERSION =
+  process.env.NEXT_PUBLIC_USDC_PERMIT_VERSION || '2'
 
 export function getVaultAddress(): Address {
   return getAddress(process.env.NEXT_PUBLIC_VAULT_ADDRESS as string)
 }
-export function getTestUsdcAddress(): Address {
-  return getAddress(process.env.NEXT_PUBLIC_TEST_USDC_ADDRESS as string)
+export function getUsdcAddress(): Address {
+  return getAddress(process.env.NEXT_PUBLIC_USDC_ADDRESS || POLYGON_USDC)
 }
 
-export const testUsdcAbi = [
+export const usdcAbi = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
   { type: 'function', name: 'nonces', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'mint', stateMutability: 'nonpayable', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [] },
 ] as const
 
 export const vaultAbi = [

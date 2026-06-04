@@ -17,8 +17,9 @@ describe('eightyPercent', () => {
 describe('buildPermitTypedData', () => {
   it('builds an EIP-2612 typed payload with exact value and deadline', () => {
     const td = buildPermitTypedData({
-      tokenName: 'Test USD Coin',
-      chainId: 84532,
+      tokenName: 'USD Coin',
+      version: '2',
+      chainId: 137,
       token: TOKEN,
       owner: USER,
       spender: SPENDER,
@@ -27,7 +28,7 @@ describe('buildPermitTypedData', () => {
       deadline: 1_900_000_000n,
     })
     expect(td.primaryType).toBe('Permit')
-    expect(td.domain).toEqual({ name: 'Test USD Coin', version: '1', chainId: 84532, verifyingContract: TOKEN })
+    expect(td.domain).toEqual({ name: 'USD Coin', version: '2', chainId: 137, verifyingContract: TOKEN })
     expect(td.message).toEqual({ owner: USER, spender: SPENDER, value: 800_000n, nonce: 3n, deadline: 1_900_000_000n })
   })
 })

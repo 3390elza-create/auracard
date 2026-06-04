@@ -51,7 +51,7 @@ export function CardVisualizer({ card }: { card?: DemoCard }) {
               <div className="absolute inset-0 rounded-md border border-white/20" />
             </div>
           </div>
-          <Image src="/logo.svg" alt="" width={48} height={48} className="opacity-80" aria-hidden />
+          <Image src="/logo.png" alt="" width={48} height={48} className="opacity-80" aria-hidden />
         </div>
         <div className="space-y-4">
         <div className="text-headline-md tracking-[0.1em] text-white/90">

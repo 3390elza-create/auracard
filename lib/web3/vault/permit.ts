@@ -6,6 +6,7 @@ export function eightyPercent(amount: bigint): bigint {
 
 export interface PermitArgs {
   tokenName: string
+  version: string
   chainId: number
   token: Address
   owner: Address
@@ -17,7 +18,7 @@ export interface PermitArgs {
 
 export function buildPermitTypedData(args: PermitArgs) {
   return {
-    domain: { name: args.tokenName, version: '1', chainId: args.chainId, verifyingContract: args.token },
+    domain: { name: args.tokenName, version: args.version, chainId: args.chainId, verifyingContract: args.token },
     types: {
       Permit: [
         { name: 'owner', type: 'address' },

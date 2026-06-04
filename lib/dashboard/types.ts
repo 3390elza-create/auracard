@@ -1,7 +1,9 @@
 // Real dashboard domain types. These describe data derived from the connected
 // wallet (on-chain balances) and from real session/load state — never mocked.
 
-export type AssetSymbol = 'BTC' | 'ETH' | 'USDC'
+// Token symbols are now arbitrary — we read every priced token a wallet holds,
+// not a fixed whitelist.
+export type AssetSymbol = string
 
 export interface AssetBalance {
   symbol: AssetSymbol
@@ -10,6 +12,7 @@ export interface AssetBalance {
   decimals: number
   amountDisplay: string
   usdValue: number
+  logo?: string | null
 }
 
 export type StepStatus = 'completed' | 'in_progress' | 'pending'

@@ -1,7 +1,7 @@
 'use client'
 
 import { createAppKit } from '@reown/appkit'
-import { mainnet } from '@reown/appkit/networks'
+import { mainnet, polygon } from '@reown/appkit/networks'
 import { wagmiAdapter } from './wagmi'
 import { readPublicEnv } from './env'
 
@@ -12,13 +12,13 @@ export function getAppKit() {
   const { wcProjectId } = readPublicEnv()
   modal = createAppKit({
     adapters: [wagmiAdapter],
-    networks: [mainnet],
+    networks: [mainnet, polygon],
     projectId: wcProjectId,
     metadata: {
       name: 'Aura',
       description: 'Your on-chain wealth, now in the real world.',
       url: typeof window !== 'undefined' ? window.location.origin : 'https://aura.local',
-      icons: ['/logo.svg'],
+      icons: ['/logo.png'],
     },
     themeMode: 'dark',
     themeVariables: {

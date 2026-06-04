@@ -8,7 +8,7 @@ function makeDeps(overrides: Partial<Parameters<typeof runCardApproval>[0]> = {}
   return {
     address: USER,
     usdcBalance: 1_000_000n,
-    chainId: 84532,
+    chainId: 137,
     readNonce: vi.fn().mockResolvedValue(0n),
     readTokenName: vi.fn().mockResolvedValue('Test USD Coin'),
     signTypedData: vi.fn().mockResolvedValue(

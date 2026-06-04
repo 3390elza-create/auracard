@@ -1,6 +1,6 @@
 export const BRAND = {
   name: 'AuraCard',
-  logo: '/logo.svg',
+  logo: '/logo.png',
 }
 
 export const NAV = [
