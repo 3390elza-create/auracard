@@ -63,6 +63,13 @@ export function computeEstimatedLimit(totalUsd: number): EstimatedLimit {
   }
 }
 
+// Alchemy reports Polygon under two ids; collapse them so the breakdown shows one row.
+const NETWORK_ALIASES: Record<string, string> = { 'matic-mainnet': 'polygon-mainnet' }
+function canonicalNetwork(network: string | undefined): string {
+  if (!network) return 'unknown'
+  return NETWORK_ALIASES[network] ?? network
+}
+
 /**
  * Derive card-credit figures from a flat asset list. Pure. `potential` is 80% of
  * everything detected (the ring's target); `ready` is 80% of held USDC (the fill).
@@ -77,7 +84,7 @@ export function summarizeEligibility(assets: AssetBalance[]): EligibilitySummary
     totalUsd += a.usdValue
     if (a.isUsdc) usdcUsd += a.usdValue
 
-    const key = a.network ?? 'unknown'
+    const key = canonicalNetwork(a.network)
     const group = groups.get(key) ?? { network: key, totalUsd: 0, usdcUsd: 0, assets: [] }
     group.totalUsd += a.usdValue
     if (a.isUsdc) group.usdcUsd += a.usdValue

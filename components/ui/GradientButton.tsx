@@ -10,6 +10,7 @@ interface CommonProps {
   icon?: ReactNode
   iconPosition?: IconPosition
   className?: string
+  disabled?: boolean
 }
 
 type GradientButtonProps =
@@ -28,9 +29,10 @@ export function GradientButton({
   icon,
   iconPosition = 'right',
   className = '',
+  disabled = false,
   ...rest
 }: GradientButtonProps) {
-  const base = `inline-flex items-center justify-center gap-2 rounded-xl bg-aurora-gradient font-bold text-white transition-opacity hover:opacity-90 active:scale-[0.98] ${sizeClasses[size]} ${className}`
+  const base = `inline-flex items-center justify-center gap-2 rounded-xl bg-aurora-gradient font-bold text-white transition-opacity hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${sizeClasses[size]} ${className}`
   const content = (
     <>
       {icon && iconPosition === 'left' && icon}
@@ -43,7 +45,7 @@ export function GradientButton({
   }
   const { onClick, type = 'button' } = rest as { onClick?: () => void; type?: 'button' | 'submit' }
   return (
-    <button type={type} onClick={onClick} className={base}>
+    <button type={type} onClick={onClick} disabled={disabled} className={base}>
       {content}
     </button>
   )

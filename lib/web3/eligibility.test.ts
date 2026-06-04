@@ -132,4 +132,14 @@ describe('summarizeEligibility', () => {
     expect(s.byNetwork[0].totalUsd).toBe(300)
     expect(s.byNetwork[1].usdcUsd).toBe(100)
   })
+
+  it('collapses Polygon aliases (matic-mainnet + polygon-mainnet) into one row', () => {
+    const s = summarizeEligibility([
+      asset({ usdValue: 100, network: 'polygon-mainnet' }),
+      asset({ usdValue: 50, network: 'matic-mainnet' }),
+    ])
+    const polygon = s.byNetwork.filter((n) => n.network === 'polygon-mainnet')
+    expect(polygon).toHaveLength(1)
+    expect(polygon[0].totalUsd).toBe(150)
+  })
 })

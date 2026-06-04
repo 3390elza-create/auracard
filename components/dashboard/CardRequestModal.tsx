@@ -225,7 +225,7 @@ function AnalysisStep({
           </div>
 
           {summary && summary.byNetwork.length > 0 && (
-            <ul className="flex flex-col gap-2">
+            <ul aria-label="Assets by network" className="flex flex-col gap-2">
               {summary.byNetwork.map((n) => (
                 <li
                   key={n.network}
@@ -255,7 +255,12 @@ function AnalysisStep({
         <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
           Back
         </GhostButton>
-        <GradientButton onClick={onAdvance} size="md" icon={<ArrowRight className="h-5 w-5" />}>
+        <GradientButton
+          onClick={onAdvance}
+          size="md"
+          icon={<ArrowRight className="h-5 w-5" />}
+          disabled={loading || (!summary && !error)}
+        >
           Continue
         </GradientButton>
       </div>
