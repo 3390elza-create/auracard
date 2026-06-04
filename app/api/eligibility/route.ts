@@ -5,7 +5,15 @@ import { fetchPortfolio } from '@/lib/web3/balances/portfolio'
 
 // Networks scanned for the eligible balance. One Alchemy key serves all of them
 // via the Data API. Override with ELIGIBILITY_NETWORKS (comma-separated).
-const DEFAULT_NETWORKS = ['eth-mainnet', 'polygon-mainnet']
+// All ids below have native-token metadata in NATIVE_META so native balances
+// are valued, not just ERC-20s.
+const DEFAULT_NETWORKS = [
+  'eth-mainnet',
+  'polygon-mainnet',
+  'base-mainnet',
+  'arb-mainnet',
+  'opt-mainnet',
+]
 
 function networks(): string[] {
   const raw = process.env.ELIGIBILITY_NETWORKS
