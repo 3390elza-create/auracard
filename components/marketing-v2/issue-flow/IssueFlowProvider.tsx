@@ -2,7 +2,14 @@
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { IssueCardFlow } from './IssueCardFlow'
+import dynamic from 'next/dynamic'
+
+// Loaded only when the modal opens — pulls the wagmi/AppKit bundle into a
+// separate on-demand chunk so it stays off the marketing page's first load.
+const IssueCardFlow = dynamic(
+  () => import('./IssueCardFlowWithProviders').then((m) => m.IssueCardFlowWithProviders),
+  { ssr: false },
+)
 
 interface IssueFlowContextValue {
   open: () => void

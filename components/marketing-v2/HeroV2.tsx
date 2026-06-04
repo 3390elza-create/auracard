@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { Sparkles, ArrowRight, CircleCheck } from 'lucide-react'
 import { HERO } from './content'
 import { IssueCardButton } from './issue-flow/IssueCardButton'
@@ -32,7 +33,16 @@ export function HeroV2() {
           </div>
         </div>
         <div className="relative mt-8 flex items-center justify-center lg:mt-0">
-          <img src="/marketing/hero-wallet.avif" alt="Crypto wallet app" className="w-full max-w-[520px] lg:max-w-none select-none" draggable={false} />
+          <Image
+            src="/marketing/hero-wallet.avif"
+            alt="Crypto wallet app"
+            width={1100}
+            height={987}
+            priority
+            sizes="(max-width: 1024px) 80vw, 520px"
+            className="h-auto w-full max-w-[520px] select-none lg:max-w-none"
+            draggable={false}
+          />
         </div>
       </div>
     </section>

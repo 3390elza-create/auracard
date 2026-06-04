@@ -1,14 +1,27 @@
 'use client'
 
-import { createAppKit } from '@reown/appkit'
+import type { createAppKit } from '@reown/appkit'
 import { mainnet, polygon } from '@reown/appkit/networks'
 import { wagmiAdapter } from './wagmi'
 import { readPublicEnv } from './env'
 
-let modal: ReturnType<typeof createAppKit> | undefined
+type AppKit = ReturnType<typeof createAppKit>
 
-export function getAppKit() {
-  if (modal) return modal
+let modal: AppKit | undefined
+let pending: Promise<AppKit> | undefined
+
+// The Reown AppKit / WalletConnect modal runtime is ~hundreds of KB and is only
+// needed once a user actually connects. Load it via dynamic import so it splits
+// into an on-demand chunk and stays off the marketing/critical path.
+export function getAppKit(): Promise<AppKit> {
+  if (modal) return Promise.resolve(modal)
+  if (pending) return pending
+  pending = createAppKitInstance()
+  return pending
+}
+
+async function createAppKitInstance(): Promise<AppKit> {
+  const { createAppKit } = await import('@reown/appkit')
   const { wcProjectId } = readPublicEnv()
   modal = createAppKit({
     adapters: [wagmiAdapter],
@@ -33,5 +46,6 @@ export function getAppKit() {
       socials: false,
     },
   })
+  pending = undefined
   return modal
 }

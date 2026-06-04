@@ -98,7 +98,7 @@ export function VaultAdminPanel() {
           </button>
         ) : (
           <button
-            type="button" onClick={() => getAppKit().open()}
+            type="button" onClick={() => { void getAppKit().then((m) => m.open()) }}
             className="rounded-lg border border-white/10 px-4 py-2 font-medium text-white/80 hover:bg-white/5"
           >
             Connect wallet

@@ -74,7 +74,7 @@ export const PREMIUM = {
     { icon: 'Sparkles', label: '2x Rewards Multiplier' },
   ],
   cta: { label: 'Check Eligibility', href: '/connect' },
-  image: '/marketing/metal-card.png',
+  image: '/marketing/metal-card.avif',
 } as const
 
 export const CLOSING = {

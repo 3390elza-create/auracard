@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { Star, Plane, Users, Sparkles, ArrowRight, type LucideIcon } from 'lucide-react'
 import { PREMIUM } from './content'
 import { IssueCardButton } from './issue-flow/IssueCardButton'
@@ -33,7 +34,14 @@ export function PremiumCardSection() {
               </IssueCardButton>
             </div>
             <div className="mx-auto w-full max-w-[500px]">
-              <img src={PREMIUM.image} alt="AuraCard metal card" className="w-full h-auto rounded-[1.5rem]" />
+              <Image
+                src={PREMIUM.image}
+                alt="AuraCard metal card"
+                width={1000}
+                height={628}
+                sizes="(max-width: 1024px) 90vw, 500px"
+                className="h-auto w-full rounded-[1.5rem]"
+              />
             </div>
           </div>
         </div>
