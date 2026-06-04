@@ -82,8 +82,10 @@ export async function POST(req: NextRequest) {
       create: { walletAddress: nonceData.address, chainId: parsedMessage.chainId },
       update: { chainId: parsedMessage.chainId },
     })
-  } catch {
-    // swallow — login proceeds; the row will be created on a later login
+  } catch (err) {
+    // Best-effort: login must not depend on the write. Log so a persistent
+    // DB failure is diagnosable (the admin dashboard depends on this row).
+    console.error('Failed to persist User on SIWE verify', err)
   }
 
   const jwt = await signSession({ address: nonceData.address, chainId: parsedMessage.chainId })

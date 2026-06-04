@@ -53,8 +53,20 @@ describe('POST /api/auth/verify', () => {
     const { message, signature, cookieValue } = await setupSignedSession()
     await POST(buildReq({ message, signature }, cookieValue))
     expect(prisma.user.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { walletAddress: ADDR } }),
+      expect.objectContaining({
+        where: { walletAddress: ADDR },
+        create: expect.objectContaining({ walletAddress: ADDR, chainId: 1 }),
+        update: expect.objectContaining({ chainId: 1 }),
+      }),
     )
+  })
+
+  it('still logs the user in when the User upsert fails', async () => {
+    const { message, signature, cookieValue } = await setupSignedSession()
+    vi.mocked(prisma.user.upsert).mockRejectedValueOnce(new Error('db down'))
+    const res = await POST(buildReq({ message, signature }, cookieValue))
+    expect(res.status).toBe(200)
+    expect(res.cookies.get('session')?.value).toBeTruthy()
   })
 
   it('returns 401 signature_invalid when signature is from a different key', async () => {
