@@ -2,12 +2,13 @@
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type { Address } from '@/lib/web3/types'
-import type { AssetBalance, EligibleBalance, EstimatedLimit } from '@/lib/dashboard/types'
-import { computeEstimatedLimit } from '../eligibility'
+import type { AssetBalance, EligibleBalance, EstimatedLimit, EligibilitySummary } from '@/lib/dashboard/types'
+import { computeEstimatedLimit, summarizeEligibility } from '../eligibility'
 
 export interface EligibilityResult {
   balance: EligibleBalance
   limit: EstimatedLimit
+  summary: EligibilitySummary
 }
 
 interface ApiAsset extends Omit<AssetBalance, 'amountRaw'> {
@@ -30,7 +31,11 @@ async function loadEligibility(): Promise<EligibilityResult> {
     amountRaw: BigInt(a.amountRaw),
   }))
   const balance: EligibleBalance = { totalUsd: json.totalUsd, assets }
-  return { balance, limit: computeEstimatedLimit(balance.totalUsd) }
+  return {
+    balance,
+    limit: computeEstimatedLimit(balance.totalUsd),
+    summary: summarizeEligibility(assets),
+  }
 }
 
 export function useEligibility(address: Address | undefined): UseQueryResult<EligibilityResult> {
