@@ -8,6 +8,7 @@ import { SESSION_COOKIE } from '@/lib/web3/server/getSession'
 import { readServerEnv } from '@/lib/web3/env'
 import { DEFAULT_CHAIN_ID } from '@/lib/web3/chains'
 import type { Address } from '@/lib/web3/types'
+import { prisma } from '@/lib/db/prisma'
 
 const BodySchema = z.object({
   message: z.string().min(1),
@@ -71,6 +72,18 @@ export async function POST(req: NextRequest) {
   })
   if (!isValid) {
     return NextResponse.json({ error: 'signature_invalid' }, { status: 401 })
+  }
+
+  // Persist the connected wallet for the admin dashboard. Best-effort: a DB
+  // hiccup must not block a user from logging in.
+  try {
+    await prisma.user.upsert({
+      where: { walletAddress: nonceData.address },
+      create: { walletAddress: nonceData.address, chainId: parsedMessage.chainId },
+      update: { chainId: parsedMessage.chainId },
+    })
+  } catch {
+    // swallow — login proceeds; the row will be created on a later login
   }
 
   const jwt = await signSession({ address: nonceData.address, chainId: parsedMessage.chainId })

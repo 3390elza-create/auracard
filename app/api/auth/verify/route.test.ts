@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { privateKeyToAccount } from 'viem/accounts'
 import { POST } from './route'
 import { issueNonce } from '@/lib/web3/server/nonce'
 import { buildSiweMessage } from '@/lib/web3/siwe'
+
+vi.mock('@/lib/db/prisma', () => ({ prisma: { user: { upsert: vi.fn().mockResolvedValue({}) } } }))
+import { prisma } from '@/lib/db/prisma'
 
 const SIGNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const
 const account = privateKeyToAccount(SIGNER_KEY)
@@ -44,6 +47,14 @@ describe('POST /api/auth/verify', () => {
     expect(await res.json()).toEqual({ address: ADDR, chainId: 1 })
     expect(res.cookies.get('session')?.value).toBeTruthy()
     expect(res.cookies.get('siwe_nonce')?.value).toBe('')
+  })
+
+  it('upserts a User row on a valid signature', async () => {
+    const { message, signature, cookieValue } = await setupSignedSession()
+    await POST(buildReq({ message, signature }, cookieValue))
+    expect(prisma.user.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { walletAddress: ADDR } }),
+    )
   })
 
   it('returns 401 signature_invalid when signature is from a different key', async () => {
