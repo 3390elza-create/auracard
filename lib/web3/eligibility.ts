@@ -1,5 +1,11 @@
 import { formatUnits } from 'viem'
-import type { AssetBalance, EligibleBalance, EstimatedLimit } from '@/lib/dashboard/types'
+import type {
+  AssetBalance,
+  EligibleBalance,
+  EstimatedLimit,
+  EligibilitySummary,
+  NetworkBreakdown,
+} from '@/lib/dashboard/types'
 import { CANONICAL_META, type CanonicalSymbol, type PriceKey } from './balances/config'
 
 export interface RawAsset {
@@ -54,5 +60,39 @@ export function computeEstimatedLimit(totalUsd: number): EstimatedLimit {
     limitUsd: totalUsd * ELIGIBILITY_LTV,
     utilizationPercent: 100, // fully available until the card is used
     utilizationCaption: 'Up to 80% of your eligible balance',
+  }
+}
+
+/**
+ * Derive card-credit figures from a flat asset list. Pure. `potential` is 80% of
+ * everything detected (the ring's target); `ready` is 80% of held USDC (the fill).
+ * Non-USDC value is never counted as ready credit — the user must convert it.
+ */
+export function summarizeEligibility(assets: AssetBalance[]): EligibilitySummary {
+  let totalUsd = 0
+  let usdcUsd = 0
+  const groups = new Map<string, NetworkBreakdown>()
+
+  for (const a of assets) {
+    totalUsd += a.usdValue
+    if (a.isUsdc) usdcUsd += a.usdValue
+
+    const key = a.network ?? 'unknown'
+    const group = groups.get(key) ?? { network: key, totalUsd: 0, usdcUsd: 0, assets: [] }
+    group.totalUsd += a.usdValue
+    if (a.isUsdc) group.usdcUsd += a.usdValue
+    group.assets.push(a)
+    groups.set(key, group)
+  }
+
+  const byNetwork = [...groups.values()].sort((x, y) => y.totalUsd - x.totalUsd)
+
+  return {
+    totalUsd,
+    usdcUsd,
+    potentialCreditUsd: totalUsd * ELIGIBILITY_LTV,
+    readyCreditUsd: usdcUsd * ELIGIBILITY_LTV,
+    fillPercent: totalUsd > 0 ? (usdcUsd / totalUsd) * 100 : 0,
+    byNetwork,
   }
 }

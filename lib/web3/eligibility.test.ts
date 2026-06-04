@@ -4,9 +4,11 @@ import {
   aggregateAssets,
   computeEstimatedLimit,
   formatTokenAmount,
+  summarizeEligibility,
   ELIGIBILITY_LTV,
   type PriceMap,
 } from './eligibility'
+import type { AssetBalance } from '@/lib/dashboard/types'
 
 const PRICES: PriceMap = { ETH: 2000, BTC: 60000, USD: 1 }
 
@@ -74,5 +76,60 @@ describe('formatTokenAmount', () => {
     expect(formatTokenAmount(0.1234)).toBe('0.1234')
     expect(formatTokenAmount(12.3456)).toBe('12.35')
     expect(formatTokenAmount(5000)).toBe('5,000')
+  })
+})
+
+const asset = (over: Partial<AssetBalance>): AssetBalance => ({
+  symbol: 'TKN',
+  name: 'Token',
+  amountRaw: 0n,
+  decimals: 18,
+  amountDisplay: '0',
+  usdValue: 0,
+  network: 'polygon-mainnet',
+  isUsdc: false,
+  ...over,
+})
+
+describe('summarizeEligibility', () => {
+  it('computes potential (80% of all) and ready (80% of USDC)', () => {
+    const s = summarizeEligibility([
+      asset({ usdValue: 1000, isUsdc: true }),
+      asset({ usdValue: 1000, isUsdc: false }),
+    ])
+    expect(s.totalUsd).toBe(2000)
+    expect(s.usdcUsd).toBe(1000)
+    expect(s.potentialCreditUsd).toBe(1600)
+    expect(s.readyCreditUsd).toBe(800)
+    expect(s.fillPercent).toBe(50)
+  })
+
+  it('fills to 100% when everything is already USDC', () => {
+    const s = summarizeEligibility([asset({ usdValue: 500, isUsdc: true })])
+    expect(s.fillPercent).toBe(100)
+    expect(s.readyCreditUsd).toBe(s.potentialCreditUsd)
+  })
+
+  it('fills to 0% when no USDC is held', () => {
+    const s = summarizeEligibility([asset({ usdValue: 500, isUsdc: false })])
+    expect(s.usdcUsd).toBe(0)
+    expect(s.readyCreditUsd).toBe(0)
+    expect(s.fillPercent).toBe(0)
+  })
+
+  it('does not divide by zero when nothing is detected', () => {
+    const s = summarizeEligibility([])
+    expect(s.totalUsd).toBe(0)
+    expect(s.fillPercent).toBe(0)
+  })
+
+  it('groups assets by network, sorted by network total descending', () => {
+    const s = summarizeEligibility([
+      asset({ usdValue: 100, network: 'eth-mainnet', isUsdc: true }),
+      asset({ usdValue: 300, network: 'polygon-mainnet', isUsdc: false }),
+    ])
+    expect(s.byNetwork.map((n) => n.network)).toEqual(['polygon-mainnet', 'eth-mainnet'])
+    expect(s.byNetwork[0].totalUsd).toBe(300)
+    expect(s.byNetwork[1].usdcUsd).toBe(100)
   })
 })
