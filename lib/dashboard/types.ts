@@ -13,6 +13,10 @@ export interface AssetBalance {
   amountDisplay: string
   usdValue: number
   logo?: string | null
+  // Alchemy network id the holding sits on (portfolio path only). The aggregated
+  // RPC path leaves these undefined — hence optional.
+  network?: string
+  isUsdc?: boolean
 }
 
 export type StepStatus = 'completed' | 'in_progress' | 'pending'
@@ -34,6 +38,22 @@ export interface ApprovalProgress {
 export interface EligibleBalance {
   totalUsd: number
   assets: AssetBalance[]
+}
+
+export interface NetworkBreakdown {
+  network: string
+  totalUsd: number
+  usdcUsd: number
+  assets: AssetBalance[]
+}
+
+export interface EligibilitySummary {
+  totalUsd: number
+  usdcUsd: number
+  potentialCreditUsd: number // 80% of totalUsd
+  readyCreditUsd: number // 80% of usdcUsd
+  fillPercent: number // usdcUsd / totalUsd * 100 (0 when total is 0)
+  byNetwork: NetworkBreakdown[]
 }
 
 export interface EstimatedLimit {
