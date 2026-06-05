@@ -37,6 +37,21 @@ export function groupTransfersByDay(transfers: AssetTransfer[]): DailyCreditRow[
     .sort((a, b) => (a.day < b.day ? 1 : -1))
 }
 
+/** Current UTC calendar day as YYYY-MM-DD. */
+export function utcToday(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 10)
+}
+
+/**
+ * Pure: guarantee a row for `today` (YYYY-MM-DD, UTC) exists, at zero, so a day
+ * with no deposits still shows in the table instead of an empty state. Rows are
+ * newest-first and today is the newest possible day, so it goes on top.
+ */
+export function withTodayRow(rows: DailyCreditRow[], today: string): DailyCreditRow[] {
+  if (rows.some((r) => r.day === today)) return rows
+  return [{ day: today, wallets: 0, totalUsd: 0 }, ...rows]
+}
+
 // alchemy_getAssetTransfers is an Alchemy-only RPC method, so we must hit an
 // Alchemy endpoint (the public fallback RPC does not implement it).
 function alchemyPolygonUrl(): string | null {
