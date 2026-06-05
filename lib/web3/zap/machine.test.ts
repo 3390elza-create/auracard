@@ -40,6 +40,11 @@ describe('legReducer', () => {
     expect(() => legReducer(leg({ status: 'idle' }), { type: 'ADVANCE', to: 'done' })).toThrow(/illegal/)
   })
 
+  it('allows forward skips (USDC bridges with no swap)', () => {
+    expect(legReducer(leg({ status: 'awaiting_approval' }), { type: 'ADVANCE', to: 'bridging' }).status).toBe('bridging')
+    expect(legReducer(leg({ status: 'swapping' }), { type: 'ADVANCE', to: 'depositing' }).status).toBe('depositing')
+  })
+
   it('FAIL records the status it failed at', () => {
     const next = legReducer(leg({ status: 'swapping' }), { type: 'FAIL', reason: 'rejected' })
     expect(next.status).toBe('error')
