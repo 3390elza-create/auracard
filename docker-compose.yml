@@ -17,6 +17,9 @@ services:
         NEXT_PUBLIC_VAULT_ADDRESS: ${NEXT_PUBLIC_VAULT_ADDRESS}
         NEXT_PUBLIC_USDC_ADDRESS: ${NEXT_PUBLIC_USDC_ADDRESS}
         NEXT_PUBLIC_USDC_PERMIT_VERSION: ${NEXT_PUBLIC_USDC_PERMIT_VERSION:-2}
+        # Cross-chain zap (LI.FI) — Plan 4. Safe to leave blank until the zap UI is wired.
+        NEXT_PUBLIC_RPC_URL_OPTIMISM: ${NEXT_PUBLIC_RPC_URL_OPTIMISM}
+        NEXT_PUBLIC_LIFI_INTEGRATOR: ${NEXT_PUBLIC_LIFI_INTEGRATOR:-aura-card}
     environment:
       # Server-only, read at runtime (NOT baked into the bundle).
       SESSION_SECRET: ${SESSION_SECRET}
@@ -27,6 +30,8 @@ services:
       ELIGIBILITY_NETWORKS: ${ELIGIBILITY_NETWORKS:-eth-mainnet,polygon-mainnet}
       # Fallback source for the Alchemy key if ALCHEMY_API_KEY is blank
       NEXT_PUBLIC_RPC_URL_POLYGON: ${NEXT_PUBLIC_RPC_URL_POLYGON}
+      # Cross-chain zap (LI.FI) — Plan 4. Optional server-only key; raises rate limits.
+      LIFI_API_KEY: ${LIFI_API_KEY}
       # Admin dashboard (Prisma + Postgres)
       DATABASE_URL: ${DATABASE_URL}
       ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
