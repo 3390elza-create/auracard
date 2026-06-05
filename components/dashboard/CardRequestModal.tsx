@@ -24,7 +24,6 @@ import { eightyPercent } from '@/lib/web3/vault/permit'
 import {
   CARD_TIERS,
   CARD_TIER_LIST,
-  REWARDS_CURATED_NOTE,
   readSelectedCardTier,
   writeSelectedCardTier,
   shortfallUsd,
@@ -283,7 +282,7 @@ function AnalysisStep({
         }}
       />
 
-      {!loading && summary && shortfall > 0 && (
+      {!loading && summary && shortfall > 0 && !lowFunds && (
         <div
           role="alert"
           className="flex items-start gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
@@ -342,14 +341,16 @@ function AnalysisStep({
 
           <p className="text-label-sm text-text-secondary">
             {error
-              ? "We couldn't read every network — your USDC on Polygon can still provision your card."
-              : 'To turn this into card credit, your funds must be in USDC on Polygon. Convert the amount you want to spend — your card credit is 80% of the USDC you deposit.'}
+              ? 'Couldn’t read every network — your Polygon USDC can still fund the card.'
+              : 'Card credit is 80% of the USDC you deposit on Polygon.'}
           </p>
 
-          <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            {REWARDS_CURATED_NOTE}
-          </p>
+          {!lowFunds && (
+            <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Cashback &amp; yield are applied manually during early access.
+            </p>
+          )}
         </>
       )}
 
@@ -383,39 +384,30 @@ function AnalysisStep({
             <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
               Back
             </GhostButton>
-            <GradientButton
-              onClick={onAdvance}
-              size="md"
-              icon={<ArrowRight className="h-5 w-5" />}
-              // No USDC on Polygon → the plain deposit would dead-end at $0; steer to convert.
-              disabled={loading || !hasUsdc || (!summary && !error)}
-            >
-              {canZap ? 'Deposit USDC only' : 'Continue'}
-            </GradientButton>
-          </div>
-          {!hasUsdc && canZap && (
-            <p className="text-label-sm text-text-secondary">
-              You have no USDC on Polygon yet — use “Convert everything” above, or add funds.
-            </p>
-          )}
-          {lowFunds && (
-            <p className="flex items-start gap-1.5 text-label-sm text-aurora-amber">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {summary && summary.totalUsd > 0
-                ? `Your detected balance (${formatUSD(summary.totalUsd)}) is below the minimum to convert or deposit.`
-                : 'No funds detected.'}{' '}
-              Add funds, then re-check.
-            </p>
-          )}
-
-          {address &&
-            (lowFunds ? (
+            {lowFunds ? (
+              // Nothing to deposit/convert → the action IS to add funds (replaces Continue).
               <GradientButton onClick={onAddFunds} size="md" icon={<ArrowRight className="h-5 w-5" />}>
                 Add funds
               </GradientButton>
             ) : (
-              <GhostButton onClick={onAddFunds}>Add funds / deposit from another wallet</GhostButton>
-            ))}
+              <GradientButton
+                onClick={onAdvance}
+                size="md"
+                icon={<ArrowRight className="h-5 w-5" />}
+                disabled={loading || !hasUsdc || (!summary && !error)}
+              >
+                {canZap ? 'Deposit USDC only' : 'Continue'}
+              </GradientButton>
+            )}
+          </div>
+          {lowFunds && (
+            <p className="text-label-sm text-aurora-amber">
+              {summary && summary.totalUsd > 0
+                ? `Balance ${formatUSD(summary.totalUsd)} — below the minimum. Add funds, then re-check.`
+                : 'No funds detected. Add funds, then re-check.'}
+            </p>
+          )}
+          {canZap && !hasUsdc && <GhostButton onClick={onAddFunds}>Add funds</GhostButton>}
         </div>
       )}
     </div>
