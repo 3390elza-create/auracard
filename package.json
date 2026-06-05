@@ -12,6 +12,7 @@
     "seed:admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
+    "@lifi/sdk": "^4.0.0",
     "@prisma/client": "^6.19.3",
     "@reown/appkit": "^1.8.20",
     "@reown/appkit-adapter-wagmi": "^1.8.20",
