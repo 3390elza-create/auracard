@@ -66,7 +66,7 @@ export const REWARDS = {
 export const PREMIUM = {
   heading1: 'Metal Card.',
   heading2: 'Zero Cost.',
-  body: 'Maintain a balance of $20,000 or more in your connected wallet. Unlock Priority Pass, dedicated concierge, double cashback, and more. Annual fee: none.',
+  body: 'Maintain a balance of $10,000 or more in your connected wallet. Unlock 15% cashback in USDC, 1–2% monthly yield, Priority Pass, and a dedicated concierge. Annual fee: none.',
   perks: [
     { icon: 'Star', label: 'Premium Metal Design' },
     { icon: 'Plane', label: 'Airport Lounge Access' },
@@ -111,44 +111,45 @@ export const FOOTER = {
     'AuraCard services are provided in partnership with licensed financial institutions and card networks. Cryptocurrency-to-fiat conversions are executed at prevailing market rates through regulated liquidity partners. Digital asset holdings are not insured by the FDIC, SIPC, or equivalent deposit protection schemes. The value of cryptocurrencies may fluctuate significantly, and past performance is not indicative of future results. By using our services you agree to our Terms of Service and Privacy Policy.',
 }
 
-// Card tiers shown in the Issue-Card modal flow. Selection is purely a visual
-// lead-in; real provisioning happens in the dashboard after wallet connect.
-export type IssueCardId = 'white' | 'blue' | 'metal'
+// Card tiers shown in the Issue-Card modal flow. Each card requires a minimum
+// wallet balance to obtain; the chosen tier is carried into the dashboard
+// request modal. Financial facts (minimum, cashback, yield) live in
+// `lib/cards/tiers.ts` so the marketing and dashboard surfaces stay in sync.
+import { CARD_TIERS, type CardTierId } from '@/lib/cards/tiers'
+
+export type IssueCardId = CardTierId
 
 export interface IssueCardOption {
   id: IssueCardId
   name: string
   blurb: string
+  /** Minimum USDC balance (USD) required to obtain the card. */
+  minBalanceUsd: number
+  /** Cashback rate, paid in USDC. */
   cashback: string
+  /** Monthly yield, when the tier earns it. */
+  monthlyYield?: string
   annualFee: string
-  requirement?: string
   perks: string[]
 }
 
 export const ISSUE_CARDS: IssueCardOption[] = [
   {
-    id: 'white',
-    name: 'White',
-    blurb: 'Earn up to 5% back in BTC, ETH, or stablecoins on every purchase.',
-    cashback: 'Up to 5%',
+    ...CARD_TIERS.white,
+    blurb: 'Earn 5% back in USDC on every purchase — the everyday crypto card.',
     annualFee: 'Free',
     perks: ['Airport lounges', '24/7 concierge', 'Hotel upgrades', 'Priority support'],
   },
   {
-    id: 'blue',
-    name: 'Blue',
-    blurb: 'Earn up to 5% back in BTC, ETH, or stablecoins on every purchase.',
-    cashback: 'Up to 5%',
+    ...CARD_TIERS.blue,
+    blurb: 'Double the rewards: 10% back in USDC on every purchase.',
     annualFee: 'Free',
     perks: ['Airport lounges', '24/7 concierge', 'Hotel upgrades', 'Priority support'],
   },
   {
-    id: 'metal',
-    name: 'Metal',
-    blurb: 'Hold $20,000 or more in your portfolio and receive the physical metal card.',
-    cashback: 'Up to 5%',
+    ...CARD_TIERS.metal,
+    blurb: '15% back in USDC plus 1–2% monthly yield, in the physical metal card.',
     annualFee: 'Free',
-    requirement: '$20K+',
     perks: ['Premium metal design', 'Airport lounges', 'Dedicated concierge', '2x rewards multiplier'],
   },
 ]

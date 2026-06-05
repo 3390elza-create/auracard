@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   X,
   ArrowLeft,
@@ -10,8 +10,13 @@ import {
   Wallet,
   Wifi,
   Loader2,
+  Coins,
+  TrendingUp,
+  Info,
 } from 'lucide-react'
 import { ISSUE_CARDS, type IssueCardId, type IssueCardOption } from '../content'
+import { REWARDS_CURATED_NOTE, writeSelectedCardTier } from '@/lib/cards/tiers'
+import { formatCompactUSD } from '@/lib/format'
 import { useSiweLogin } from '@/lib/web3/hooks/useSiweLogin'
 import type { SiweLoginError } from '@/lib/web3/types'
 
@@ -36,6 +41,13 @@ export function IssueCardFlow({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>('card')
   const [selectedId, setSelectedId] = useState<IssueCardId>('white')
   const { state, start } = useSiweLogin()
+
+  // Persist the pick so the dashboard request modal (post-connect, after the
+  // redirect) can show the same card and check it against the wallet balance.
+  const selectCard = (id: IssueCardId) => {
+    setSelectedId(id)
+    writeSelectedCardTier(id)
+  }
 
   const connecting =
     state.status === 'connecting' ||
@@ -97,7 +109,7 @@ export function IssueCardFlow({ onClose }: { onClose: () => void }) {
         {step === 'card' && (
           <CardSelectStep
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectCard}
             onContinue={() => setStep('review')}
           />
         )}
@@ -137,7 +149,7 @@ function CardSelectStep({
               type="button"
               onClick={() => onSelect(card.id)}
               aria-pressed={active}
-              className={`flex items-center gap-4 rounded-2xl border p-4 text-left transition-colors ${
+              className={`flex items-start gap-4 rounded-2xl border p-4 text-left transition-colors ${
                 active ? 'border-primary bg-primary/5' : 'border-border bg-secondary/40 hover:bg-secondary'
               }`}
             >
@@ -145,16 +157,23 @@ function CardSelectStep({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-bold text-foreground">{card.name}</span>
-                  {card.requirement && (
-                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
-                      {card.requirement}
-                    </span>
-                  )}
+                  <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-bold text-primary">
+                    Min {formatCompactUSD(card.minBalanceUsd)}
+                  </span>
                 </div>
                 <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{card.blurb}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <CardBenefitChip icon={<Coins className="h-3 w-3" />} label={`${card.cashback} cashback`} />
+                  {card.monthlyYield && (
+                    <CardBenefitChip
+                      icon={<TrendingUp className="h-3 w-3" />}
+                      label={`${card.monthlyYield}/mo yield`}
+                    />
+                  )}
+                </div>
               </div>
               <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                   active ? 'border-primary bg-primary text-primary-foreground' : 'border-border'
                 }`}
               >
@@ -164,14 +183,27 @@ function CardSelectStep({
           )
         })}
       </div>
+      <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+        <Info className="mt-0.5 h-3 w-3 shrink-0" />
+        {REWARDS_CURATED_NOTE}
+      </p>
       <button
         type="button"
         onClick={onContinue}
-        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-3.5 text-base font-semibold text-primary-foreground shadow-button-v2 transition-transform hover:-translate-y-0.5"
+        className="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-3.5 text-base font-semibold text-primary-foreground shadow-button-v2 transition-transform hover:-translate-y-0.5"
       >
         Continue<ArrowRight className="h-5 w-5" />
       </button>
     </div>
+  )
+}
+
+function CardBenefitChip({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-foreground">
+      {icon}
+      {label}
+    </span>
   )
 }
 
@@ -188,9 +220,16 @@ function ReviewStep({ card, onActivate }: { card: IssueCardOption; onActivate: (
 
       <div className="rounded-2xl bg-secondary/50 p-4">
         <Row label="Card" value={card.name} />
-        <Row label="Cashback" value={card.cashback} />
+        <Row label="Minimum balance" value={formatCompactUSD(card.minBalanceUsd)} />
+        <Row label="Cashback (USDC)" value={card.cashback} />
+        {card.monthlyYield && <Row label="Monthly yield" value={card.monthlyYield} />}
         <Row label="Annual Fee" value={card.annualFee} valueClassName="text-success font-semibold" />
       </div>
+
+      <p className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+        <Info className="mt-0.5 h-3 w-3 shrink-0" />
+        {REWARDS_CURATED_NOTE}
+      </p>
 
       <div>
         <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">

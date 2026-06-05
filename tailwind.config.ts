@@ -18,6 +18,7 @@ const config: Config = {
         'aurora-violet':   '#7C5CFF',
         'aurora-blue':     '#4F8CFF',
         'aurora-teal':     '#2DD4BF',
+        'aurora-amber':    '#F5A623',
         'glass-fill':      'rgba(255,255,255,0.07)',
         'glass-border':    'rgba(255,255,255,0.12)',
         'error':           '#FF6B6B',

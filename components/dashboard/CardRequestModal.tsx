@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
   ShieldCheck,
   Wallet,
@@ -11,17 +11,36 @@ import {
   AlertCircle,
   X,
   Sparkles,
+  Coins,
+  TrendingUp,
+  Info,
 } from 'lucide-react'
 import { Panel } from '@/components/ui/Panel'
 import { GradientButton } from '@/components/ui/GradientButton'
 import { GhostButton } from '@/components/ui/GhostButton'
 import { CreditRing } from '@/components/ui/CreditRing'
-import { formatUSD } from '@/lib/format'
+import { formatUSD, formatCompactUSD } from '@/lib/format'
 import { eightyPercent } from '@/lib/web3/vault/permit'
+import {
+  CARD_TIERS,
+  CARD_TIER_LIST,
+  REWARDS_CURATED_NOTE,
+  readSelectedCardTier,
+  writeSelectedCardTier,
+  shortfallUsd,
+  type CardTier,
+  type CardTierId,
+} from '@/lib/cards/tiers'
 import { useEligibility } from '@/lib/web3/hooks/useEligibility'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
 import type { Address } from '@/lib/web3/types'
 import type { EligibilitySummary } from '@/lib/dashboard/types'
+
+const CARD_SWATCH: Record<CardTierId, string> = {
+  white: 'bg-gradient-to-br from-slate-100 to-slate-300 text-slate-600',
+  blue: 'bg-gradient-to-br from-aurora-blue to-aurora-violet text-white',
+  metal: 'bg-gradient-to-br from-zinc-600 to-zinc-900 text-white',
+}
 
 type Step = 'intro' | 'analysis' | 'approval'
 
@@ -61,8 +80,17 @@ export function CardRequestModal({
   onClose: () => void
 }) {
   const [step, setStep] = useState<Step>('intro')
+  // Tier the user picked in the marketing issue flow (carried via localStorage).
+  // Defaults to the entry tier when there's no prior selection.
+  const [tierId, setTierId] = useState<CardTierId>('white')
   const eligibility = useEligibility(address)
   const { state, requestCard, reset } = useCardApproval(usdcBalance)
+
+  // Read the persisted selection on mount (localStorage is client-only).
+  useEffect(() => {
+    const stored = readSelectedCardTier()
+    if (stored) setTierId(stored)
+  }, [])
 
   const busy =
     state.status === 'signing' ||
@@ -131,6 +159,11 @@ export function CardRequestModal({
             loading={eligibility.isLoading}
             error={eligibility.isError}
             summary={eligibility.data?.summary ?? null}
+            tier={CARD_TIERS[tierId]}
+            onSelectTier={(id) => {
+              setTierId(id)
+              writeSelectedCardTier(id)
+            }}
             onBack={() => setStep('intro')}
             onAdvance={advance}
           />
@@ -183,15 +216,25 @@ function AnalysisStep({
   loading,
   error,
   summary,
+  tier,
+  onSelectTier,
   onBack,
   onAdvance,
 }: {
   loading: boolean
   error: boolean
   summary: EligibilitySummary | null
+  tier: CardTier
+  onSelectTier: (id: CardTierId) => void
   onBack: () => void
   onAdvance: () => void
 }) {
+  const [picking, setPicking] = useState(false)
+  // The minimum is measured against USDC holdings (the asset that provisions the
+  // card), not total wallet value.
+  const usdcUsd = summary?.usdcUsd ?? 0
+  const shortfall = summary ? shortfallUsd(tier, usdcUsd) : 0
+
   return (
     <div className="flex flex-col gap-5">
       <StepBadge current={2} total={3} />
@@ -199,6 +242,30 @@ function AnalysisStep({
         <Wallet className="h-6 w-6" />
         <h2 className="text-headline-md text-text-primary">Wallet analysis</h2>
       </div>
+
+      <SelectedCard
+        tier={tier}
+        picking={picking}
+        onTogglePicking={() => setPicking((v) => !v)}
+        onSelectTier={(id) => {
+          onSelectTier(id)
+          setPicking(false)
+        }}
+      />
+
+      {!loading && summary && shortfall > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            You&apos;re <span className="font-bold">{formatUSD(shortfall)}</span> short of the{' '}
+            {formatUSD(tier.minBalanceUsd)} USDC minimum for the {tier.name} card. Add USDC or pick a
+            lower tier.
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -248,6 +315,11 @@ function AnalysisStep({
               ? "We couldn't read every network — your USDC on Polygon can still provision your card."
               : 'To turn this into card credit, your funds must be in USDC on Polygon. Convert the amount you want to spend — your card credit is 80% of the USDC you deposit.'}
           </p>
+
+          <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {REWARDS_CURATED_NOTE}
+          </p>
         </>
       )}
 
@@ -265,6 +337,102 @@ function AnalysisStep({
         </GradientButton>
       </div>
     </div>
+  )
+}
+
+function SelectedCard({
+  tier,
+  picking,
+  onTogglePicking,
+  onSelectTier,
+}: {
+  tier: CardTier
+  picking: boolean
+  onTogglePicking: () => void
+  onSelectTier: (id: CardTierId) => void
+}) {
+  return (
+    <div className="rounded-xl border border-glass-border bg-white/5 p-3">
+      <div className="flex items-center gap-3">
+        <CardSwatch id={tier.id} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-label-md font-semibold text-text-primary">{tier.name} card</span>
+            <span className="rounded-md bg-aurora-violet/15 px-1.5 py-0.5 text-label-sm font-bold text-aurora-violet">
+              Min {formatCompactUSD(tier.minBalanceUsd)}
+            </span>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <Benefit icon={<Coins className="h-3 w-3" />} label={`${tier.cashback} cashback`} />
+            {tier.monthlyYield && (
+              <Benefit icon={<TrendingUp className="h-3 w-3" />} label={`${tier.monthlyYield}/mo yield`} />
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onTogglePicking}
+          aria-expanded={picking}
+          className="shrink-0 rounded-lg px-2.5 py-1 text-label-sm font-semibold text-aurora-blue transition-colors hover:bg-white/10"
+        >
+          {picking ? 'Close' : 'Change'}
+        </button>
+      </div>
+
+      {picking && (
+        <div className="mt-3 flex flex-col gap-1.5 border-t border-glass-border pt-3">
+          {CARD_TIER_LIST.map((t) => {
+            const active = t.id === tier.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onSelectTier(t.id)}
+                aria-pressed={active}
+                className={`flex items-center gap-3 rounded-lg border px-2.5 py-2 text-left transition-colors ${
+                  active
+                    ? 'border-aurora-violet bg-aurora-violet/10'
+                    : 'border-transparent bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                <CardSwatch id={t.id} />
+                <div className="min-w-0 flex-1">
+                  <span className="text-label-md font-semibold text-text-primary">{t.name}</span>
+                  <span className="ml-2 text-label-sm text-text-secondary">
+                    {t.cashback} cashback{t.monthlyYield ? ` · ${t.monthlyYield}/mo` : ''}
+                  </span>
+                </div>
+                <span className="shrink-0 text-label-sm font-semibold text-text-secondary">
+                  Min {formatCompactUSD(t.minBalanceUsd)}
+                </span>
+                {active && <Check className="h-4 w-4 shrink-0 text-aurora-violet" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CardSwatch({ id }: { id: CardTierId }) {
+  return (
+    <div
+      className={`flex h-8 w-12 shrink-0 flex-col justify-between rounded-md p-1 ${CARD_SWATCH[id]}`}
+      aria-hidden
+    >
+      <span className="text-[5px] font-bold uppercase tracking-wider">Aura</span>
+      <span className="h-1 w-3.5 rounded-sm bg-current opacity-40" />
+    </div>
+  )
+}
+
+function Benefit({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-label-sm font-medium text-text-primary">
+      {icon}
+      {label}
+    </span>
   )
 }
 
