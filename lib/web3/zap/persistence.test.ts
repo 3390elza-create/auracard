@@ -62,6 +62,10 @@ describe('zap run persistence', () => {
     expect(loadRun(run.address)).toBeNull()
   })
 
+  it('clearRun on an unstored address does not throw', () => {
+    expect(() => clearRun('0xNeverStored')).not.toThrow()
+  })
+
   it('is a no-op without a window (SSR)', () => {
     vi.stubGlobal('window', undefined)
     expect(() => saveRun(run)).not.toThrow()

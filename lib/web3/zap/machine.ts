@@ -68,10 +68,8 @@ export function legReducer(state: LegState, event: LegEvent): LegState {
     }
     case 'RETRY': {
       if (state.status !== 'error') return state
-      const atStatus = state.error?.atStatus ?? 'idle'
-      const next: LegState = { ...state, status: atStatus }
-      delete next.error
-      return next
+      const { error, ...rest } = state
+      return { ...rest, status: error?.atStatus ?? 'idle' }
     }
   }
 }
@@ -83,7 +81,7 @@ export interface ZapRunState {
 
 /** Seed a run with one idle leg per source chain, in the given order. */
 export function createRun(address: string, chainIds: ZapChainId[]): ZapRunState {
-  return { address, legs: chainIds.map((chainId) => ({ chainId, status: 'idle' as LegStatus })) }
+  return { address, legs: chainIds.map((chainId): LegState => ({ chainId, status: 'idle' })) }
 }
 
 /** Immutably apply an event to the leg for `chainId`; other legs untouched. */
@@ -94,7 +92,7 @@ export function applyLegEvent(run: ZapRunState, chainId: ZapChainId, event: LegE
   }
 }
 
-/** The first leg not yet `done` (the one the orchestrator should drive); null if all done. */
+/** First non-`done` leg (including an `error` leg awaiting RETRY) — the leg the orchestrator drives; null if all done. */
 export function activeLeg(run: ZapRunState): LegState | null {
   return run.legs.find((leg) => leg.status !== 'done') ?? null
 }

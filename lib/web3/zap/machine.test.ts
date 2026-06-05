@@ -85,6 +85,10 @@ describe('run helpers', () => {
     expect(activeLeg({ address: '0xU', legs: [leg({ status: 'done' })] })).toBeNull()
   })
 
+  it('isRunComplete is false for a run with no legs', () => {
+    expect(isRunComplete({ address: '0xU', legs: [] })).toBe(false)
+  })
+
   it('isRunComplete only when every leg is done', () => {
     expect(
       isRunComplete({ address: '0xU', legs: [leg({ status: 'done' }), leg({ status: 'depositing' })] }),
