@@ -33,8 +33,10 @@ import {
 } from '@/lib/cards/tiers'
 import { useEligibility } from '@/lib/web3/hooks/useEligibility'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
+import { useZapDeposit } from '@/lib/web3/hooks/useZapDeposit'
+import { ZapProgressView } from './ZapProgressView'
 import type { Address } from '@/lib/web3/types'
-import type { EligibilitySummary } from '@/lib/dashboard/types'
+import type { AssetBalance, EligibilitySummary } from '@/lib/dashboard/types'
 
 const CARD_SWATCH: Record<CardTierId, string> = {
   white: 'bg-gradient-to-br from-slate-100 to-slate-300 text-slate-600',
@@ -159,6 +161,8 @@ export function CardRequestModal({
             loading={eligibility.isLoading}
             error={eligibility.isError}
             summary={eligibility.data?.summary ?? null}
+            address={address}
+            assets={eligibility.data?.balance.assets ?? []}
             tier={CARD_TIERS[tierId]}
             onSelectTier={(id) => {
               setTierId(id)
@@ -166,6 +170,7 @@ export function CardRequestModal({
             }}
             onBack={() => setStep('intro')}
             onAdvance={advance}
+            onZapDone={onClose}
           />
         ) : (
           <ApprovalStep
@@ -216,24 +221,33 @@ function AnalysisStep({
   loading,
   error,
   summary,
+  address,
+  assets,
   tier,
   onSelectTier,
   onBack,
   onAdvance,
+  onZapDone,
 }: {
   loading: boolean
   error: boolean
   summary: EligibilitySummary | null
+  address: Address | undefined
+  assets: AssetBalance[]
   tier: CardTier
   onSelectTier: (id: CardTierId) => void
   onBack: () => void
   onAdvance: () => void
+  onZapDone: () => void
 }) {
   const [picking, setPicking] = useState(false)
+  const zap = useZapDeposit(address, assets)
   // The minimum is measured against USDC holdings (the asset that provisions the
   // card), not total wallet value.
   const usdcUsd = summary?.usdcUsd ?? 0
   const shortfall = summary ? shortfallUsd(tier, usdcUsd) : 0
+  // There is non-USDC value the zap can convert (one-click swap+bridge→deposit).
+  const canZap = zap.plan.legs.length > 0
 
   return (
     <div className="flex flex-col gap-5">
@@ -323,19 +337,47 @@ function AnalysisStep({
         </>
       )}
 
-      <div className="flex gap-3">
-        <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
-          Back
-        </GhostButton>
-        <GradientButton
-          onClick={onAdvance}
-          size="md"
-          icon={<ArrowRight className="h-5 w-5" />}
-          disabled={loading || (!summary && !error)}
-        >
-          Continue
-        </GradientButton>
-      </div>
+      {zap.phase === 'done' ? (
+        <div className="flex flex-col items-center gap-3 py-1 text-center">
+          <div className="flex items-center gap-2 text-aurora-teal">
+            <Check className="h-5 w-5" />
+            <span className="text-label-md font-semibold text-text-primary">
+              Conversion complete — your card credit is active
+            </span>
+          </div>
+          <GradientButton onClick={onZapDone} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
+            View my card
+          </GradientButton>
+        </div>
+      ) : zap.isRunning || zap.phase === 'error' ? (
+        <ZapProgressView run={zap.run} plan={zap.plan} error={zap.error} onRetry={zap.retry} />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {canZap && (
+            <GradientButton
+              onClick={zap.start}
+              size="md"
+              icon={<ArrowRight className="h-5 w-5" />}
+              disabled={loading}
+            >
+              Convert everything to USDC &amp; deposit
+            </GradientButton>
+          )}
+          <div className="flex gap-3">
+            <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
+              Back
+            </GhostButton>
+            <GradientButton
+              onClick={onAdvance}
+              size="md"
+              icon={<ArrowRight className="h-5 w-5" />}
+              disabled={loading || (!summary && !error)}
+            >
+              {canZap ? 'Deposit USDC only' : 'Continue'}
+            </GradientButton>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
