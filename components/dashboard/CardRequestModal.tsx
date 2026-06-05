@@ -163,6 +163,7 @@ export function CardRequestModal({
             summary={eligibility.data?.summary ?? null}
             address={address}
             assets={eligibility.data?.balance.assets ?? []}
+            hasUsdc={usdcBalance > 0n}
             tier={CARD_TIERS[tierId]}
             onSelectTier={(id) => {
               setTierId(id)
@@ -223,6 +224,7 @@ function AnalysisStep({
   summary,
   address,
   assets,
+  hasUsdc,
   tier,
   onSelectTier,
   onBack,
@@ -234,6 +236,7 @@ function AnalysisStep({
   summary: EligibilitySummary | null
   address: Address | undefined
   assets: AssetBalance[]
+  hasUsdc: boolean
   tier: CardTier
   onSelectTier: (id: CardTierId) => void
   onBack: () => void
@@ -371,11 +374,24 @@ function AnalysisStep({
               onClick={onAdvance}
               size="md"
               icon={<ArrowRight className="h-5 w-5" />}
-              disabled={loading || (!summary && !error)}
+              // No USDC on Polygon → the plain deposit would dead-end at $0; steer to convert.
+              disabled={loading || !hasUsdc || (!summary && !error)}
             >
               {canZap ? 'Deposit USDC only' : 'Continue'}
             </GradientButton>
           </div>
+          {!hasUsdc && canZap && (
+            <p className="text-label-sm text-text-secondary">
+              You have no USDC on Polygon yet — use “Convert everything” above to fund your card.
+            </p>
+          )}
+          {!hasUsdc && !canZap && !loading && (
+            <p className="flex items-start gap-1.5 text-label-sm text-aurora-amber">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              No funds on a supported chain to convert or deposit. Add crypto to your wallet (or USDC
+              on Polygon) and reopen.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -524,9 +540,16 @@ function ApprovalStep({
           <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
             Back
           </GhostButton>
-          <GradientButton onClick={onRetry} size="md">
-            Try again
-          </GradientButton>
+          {reason === 'insufficient_balance' ? (
+            // Retrying a $0 deposit just loops — send the user back to convert their assets.
+            <GradientButton onClick={onBack} size="md" icon={<ArrowRight className="h-5 w-5" />}>
+              Convert assets instead
+            </GradientButton>
+          ) : (
+            <GradientButton onClick={onRetry} size="md">
+              Try again
+            </GradientButton>
+          )}
         </div>
       )}
     </div>
