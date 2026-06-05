@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupTransfersByDay, type AssetTransfer } from './dailyCredit'
+import { groupTransfersByDay, utcToday, withTodayRow, type AssetTransfer } from './dailyCredit'
 
 const t = (day: string, from: string, value: number): AssetTransfer => ({
   from,
@@ -42,5 +42,30 @@ describe('groupTransfersByDay', () => {
       { from: '0x2', value: 5, metadata: {} },
     ])
     expect(rows).toEqual([{ day: '2026-06-04', wallets: 1, totalUsd: 0 }])
+  })
+})
+
+describe('utcToday', () => {
+  it('returns the UTC calendar day as YYYY-MM-DD', () => {
+    expect(utcToday(new Date('2026-06-05T23:30:00Z'))).toBe('2026-06-05')
+  })
+})
+
+describe('withTodayRow', () => {
+  it('prepends a zero row for today when no deposits exist that day', () => {
+    expect(withTodayRow([], '2026-06-05')).toEqual([{ day: '2026-06-05', wallets: 0, totalUsd: 0 }])
+  })
+
+  it('keeps today on top of earlier days (newest-first order)', () => {
+    const rows = withTodayRow([{ day: '2026-06-04', wallets: 2, totalUsd: 400 }], '2026-06-05')
+    expect(rows).toEqual([
+      { day: '2026-06-05', wallets: 0, totalUsd: 0 },
+      { day: '2026-06-04', wallets: 2, totalUsd: 400 },
+    ])
+  })
+
+  it('leaves rows untouched when today already has deposits', () => {
+    const existing = [{ day: '2026-06-05', wallets: 1, totalUsd: 1000 }]
+    expect(withTodayRow(existing, '2026-06-05')).toBe(existing)
   })
 })

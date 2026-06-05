@@ -69,8 +69,6 @@ export function AdminDailyCreditTable() {
         </p>
       ) : rows === null ? (
         <p className="text-sm text-white/50">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-white/50">No deposits yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
