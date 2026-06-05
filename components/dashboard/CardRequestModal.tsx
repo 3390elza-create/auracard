@@ -35,6 +35,7 @@ import { useEligibility } from '@/lib/web3/hooks/useEligibility'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
 import { useZapDeposit } from '@/lib/web3/hooks/useZapDeposit'
 import { ZapProgressView } from './ZapProgressView'
+import { AddFundsPanel } from './AddFundsPanel'
 import type { Address } from '@/lib/web3/types'
 import type { AssetBalance, EligibilitySummary } from '@/lib/dashboard/types'
 
@@ -244,6 +245,7 @@ function AnalysisStep({
   onZapDone: () => void
 }) {
   const [picking, setPicking] = useState(false)
+  const [showFund, setShowFund] = useState(false)
   const zap = useZapDeposit(address, assets)
   // The minimum is measured against USDC holdings (the asset that provisions the
   // card), not total wallet value.
@@ -251,6 +253,8 @@ function AnalysisStep({
   const shortfall = summary ? shortfallUsd(tier, usdcUsd) : 0
   // There is non-USDC value the zap can convert (one-click swap+bridge→deposit).
   const canZap = zap.plan.legs.length > 0
+  // Nothing to deposit and nothing to convert — the user must add funds first.
+  const lowFunds = !loading && !!summary && !hasUsdc && !canZap
 
   return (
     <div className="flex flex-col gap-5">
@@ -382,16 +386,30 @@ function AnalysisStep({
           </div>
           {!hasUsdc && canZap && (
             <p className="text-label-sm text-text-secondary">
-              You have no USDC on Polygon yet — use “Convert everything” above to fund your card.
+              You have no USDC on Polygon yet — use “Convert everything” above, or add funds below.
             </p>
           )}
-          {!hasUsdc && !canZap && !loading && (
+          {lowFunds && (
             <p className="flex items-start gap-1.5 text-label-sm text-aurora-amber">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              No funds on a supported chain to convert or deposit. Add crypto to your wallet (or USDC
-              on Polygon) and reopen.
+              {summary && summary.totalUsd > 0
+                ? `Your detected balance (${formatUSD(summary.totalUsd)}) is below the minimum to convert or deposit.`
+                : 'No funds detected.'}{' '}
+              Add funds to your wallet below, then reopen.
             </p>
           )}
+
+          {address &&
+            (lowFunds ? (
+              <AddFundsPanel address={address} />
+            ) : (
+              <>
+                <GhostButton onClick={() => setShowFund((v) => !v)}>
+                  {showFund ? 'Hide deposit address' : 'Add funds / deposit from another wallet'}
+                </GhostButton>
+                {showFund && <AddFundsPanel address={address} />}
+              </>
+            ))}
         </div>
       )}
     </div>
