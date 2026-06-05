@@ -1,8 +1,20 @@
-import { formatUnits } from 'viem'
+import { formatUnits, getAddress } from 'viem'
+import type { Address } from '@/lib/web3/types'
 import type { AssetBalance, EligibleBalance } from '@/lib/dashboard/types'
 import { formatTokenAmount } from '../eligibility'
 import { isUsdcToken } from './usdc'
 import { chainIdForNetwork } from './chains'
+
+// Alchemy occasionally returns addresses that aren't valid 20-byte hex; checksum
+// defensively so one bad token never throws and aborts the whole portfolio read.
+function toChecksummedAddress(addr: string | null): Address | null {
+  if (!addr) return null
+  try {
+    return getAddress(addr)
+  } catch {
+    return null
+  }
+}
 
 // Raw token entry as returned by Alchemy's Portfolio API
 // (POST /data/v1/{key}/assets/tokens/by-address).
@@ -95,7 +107,7 @@ export function mapPortfolioTokens(tokens: PortfolioToken[]): EligibleBalance {
       network: token.network,
       isUsdc: isUsdcToken(token.network, token.tokenAddress),
       chainId: chainIdForNetwork(token.network),
-      address: token.tokenAddress,
+      address: toChecksummedAddress(token.tokenAddress),
       isNative,
     })
   }
