@@ -21,24 +21,37 @@ import type {
 export interface LifiZapProviderOptions {
   walletClient: WalletClient
   integrator: string
+  // Switch the wallet to a chain and return its wallet client. Required for
+  // cross-chain routes: LI.FI moves the wallet to each source chain before
+  // signing. Without it, a route that needs a different chain than the wallet's
+  // current one cannot execute.
+  switchChain?: (chainId: number) => Promise<WalletClient>
 }
 
 // @lifi/sdk's createConfig sets module-global state and must run once per app
-// lifecycle. We configure once and let the active wallet client be swapped
-// (e.g. on wallet reconnect) without clobbering the global config.
+// lifecycle. We configure once and let the active wallet client / switcher be
+// swapped (e.g. on wallet reconnect) without clobbering the global config.
 let lifiConfigured = false
 let activeWalletClient: WalletClient | null = null
+let activeSwitchChain: ((chainId: number) => Promise<WalletClient>) | undefined
 
-function ensureLifiConfig(integrator: string, walletClient: WalletClient): void {
-  activeWalletClient = walletClient
+function ensureLifiConfig(opts: LifiZapProviderOptions): void {
+  activeWalletClient = opts.walletClient
+  activeSwitchChain = opts.switchChain
   if (lifiConfigured) return
   createConfig({
-    integrator,
+    integrator: opts.integrator,
     providers: [
       EVM({
         getWalletClient: async () => {
           if (!activeWalletClient) throw new Error('LI.FI wallet client not set')
           return activeWalletClient
+        },
+        switchChain: async (chainId: number) => {
+          if (!activeSwitchChain) throw new Error('LI.FI switchChain not provided')
+          const client = await activeSwitchChain(chainId)
+          activeWalletClient = client
+          return client
         },
       }),
     ],
@@ -53,7 +66,7 @@ export class LifiZapProvider implements ZapProvider {
 
   constructor(opts: LifiZapProviderOptions) {
     this.walletClient = opts.walletClient
-    ensureLifiConfig(opts.integrator, opts.walletClient)
+    ensureLifiConfig(opts)
   }
 
   async quote(params: ZapQuoteParams): Promise<ZapQuote> {
