@@ -17,7 +17,9 @@ export function isZapChainId(id: number | null | undefined): id is ZapChainId {
 }
 
 export interface ZapToken {
-  chainId: ZapChainId
+  // Source chain. Plain number: skipped tokens may sit on an unsupported chain.
+  // The validated, branded chain id lives on ZapLeg.chainId (used for routing).
+  chainId: number
   address: string // contract address, or NATIVE_SENTINEL for native
   symbol: string
   decimals: number

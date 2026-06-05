@@ -15,10 +15,10 @@ import {
 
 const MICRO = 1_000_000 // integer micro-USD scale for float-free reserve math
 
-function toZapToken(asset: AssetBalance, chainId: ZapChainId): ZapToken {
+function toZapToken(asset: AssetBalance, chainId: number): ZapToken {
   return {
     chainId,
-    address: asset.isNative ? NATIVE_SENTINEL : (asset.address as string),
+    address: asset.isNative ? NATIVE_SENTINEL : (asset.address ?? ''),
     symbol: asset.symbol,
     decimals: asset.decimals,
     amountRaw: asset.amountRaw,
@@ -31,7 +31,7 @@ function toZapToken(asset: AssetBalance, chainId: ZapChainId): ZapToken {
 /** Raw amount to keep as native gas reserve, via integer micro-USD scaling. */
 function nativeReserveRaw(amountRaw: bigint, usdValue: number, reserveUsd: number): bigint {
   const valueMicro = BigInt(Math.round(usdValue * MICRO))
-  if (valueMicro <= 0n) return amountRaw // unpriced native: keep all, convert nothing
+  if (valueMicro <= 0n) return amountRaw // unpriced native: reserve all -> caller converts nothing (then skips)
   const reserveMicro = BigInt(Math.round(reserveUsd * MICRO))
   const reserveRaw = (amountRaw * reserveMicro) / valueMicro
   return reserveRaw > amountRaw ? amountRaw : reserveRaw
@@ -51,11 +51,12 @@ export function buildZapPlan(
   const byChain = new Map<ZapChainId, ZapTokenSelection[]>()
 
   for (const asset of assets) {
-    if (!isZapChainId(asset.chainId ?? null)) {
-      skipped.push({ token: asLooseToken(asset), reason: 'unsupported_chain' })
+    const rawChainId = asset.chainId ?? null
+    if (!isZapChainId(rawChainId)) {
+      skipped.push({ token: toZapToken(asset, asset.chainId ?? 0), reason: 'unsupported_chain' })
       continue
     }
-    const chainId = asset.chainId as ZapChainId
+    const chainId: ZapChainId = rawChainId // narrowed by isZapChainId guard above
     if (!asset.isNative && !asset.address) {
       skipped.push({ token: toZapToken(asset, chainId), reason: 'missing_address' })
       continue
@@ -68,6 +69,8 @@ export function buildZapPlan(
     if (token.isNative) {
       const reserveRaw = nativeReserveRaw(token.amountRaw, token.usdValue, config.nativeReserveUsd)
       amountRaw = token.amountRaw - reserveRaw
+      // USD of the converted remainder = holding value minus the reserved gas
+      // value. (Differs from amountRaw only by sub-cent integer-division rounding.)
       usdValue = token.usdValue - config.nativeReserveUsd
       if (amountRaw <= 0n || usdValue < config.floorUsd) {
         skipped.push({ token, reason: 'native_below_reserve' })
@@ -100,19 +103,4 @@ export function buildZapPlan(
   })
 
   return { legs, skipped, totalUsd: legs.reduce((sum, l) => sum + l.totalUsd, 0) }
-}
-
-// For unsupported-chain skips we still want a token shape for display; chainId is
-// not a ZapChainId, so build a best-effort token without the branded id.
-function asLooseToken(asset: AssetBalance): ZapToken {
-  return {
-    chainId: (asset.chainId ?? 0) as ZapChainId,
-    address: asset.isNative ? NATIVE_SENTINEL : (asset.address ?? ''),
-    symbol: asset.symbol,
-    decimals: asset.decimals,
-    amountRaw: asset.amountRaw,
-    usdValue: asset.usdValue,
-    isUsdc: Boolean(asset.isUsdc),
-    isNative: Boolean(asset.isNative),
-  }
 }

@@ -43,6 +43,12 @@ describe('buildZapPlan', () => {
     expect(plan.legs).toHaveLength(0)
   })
 
+  it('includes a non-native token exactly at the floor (inclusive)', () => {
+    const plan = buildZapPlan([asset({ usdValue: 5, amountRaw: 5n })], DEFAULT_ZAP_CONFIG)
+    expect(plan.skipped).toHaveLength(0)
+    expect(plan.legs[0].selections[0].usdValue).toBe(5)
+  })
+
   it('converts the full balance of a non-native token above the floor', () => {
     const plan = buildZapPlan(
       [asset({ chainId: 8453, address: '0xusdc', usdValue: 100, amountRaw: 100_000_000n })],
