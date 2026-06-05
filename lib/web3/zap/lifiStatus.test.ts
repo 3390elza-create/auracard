@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeLifiProcess } from './provider'
+import { normalizeLifiProcess } from './lifiStatus'
 
 describe('normalizeLifiProcess', () => {
   it('maps LI.FI process types to zap step kinds', () => {
@@ -15,6 +15,7 @@ describe('normalizeLifiProcess', () => {
     expect(normalizeLifiProcess('SWAP', 'PENDING')?.status).toBe('pending')
     expect(normalizeLifiProcess('SWAP', 'DONE')?.status).toBe('done')
     expect(normalizeLifiProcess('SWAP', 'FAILED')?.status).toBe('failed')
+    expect(normalizeLifiProcess('CROSS_CHAIN', 'CANCELLED')?.status).toBe('failed')
   })
 
   it('carries the tx hash when present', () => {

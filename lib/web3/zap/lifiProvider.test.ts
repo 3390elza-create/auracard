@@ -10,13 +10,15 @@ vi.mock('@lifi/sdk', () => ({
 }))
 
 import * as lifi from '@lifi/sdk'
+import type { WalletClient } from 'viem'
 import { LifiZapProvider } from './lifiProvider'
-import type { ZapQuoteParams } from './provider'
+import type { ZapProgress, ZapQuoteParams } from './provider'
 
 const getQuote = vi.mocked(lifi.getQuote)
 const setTokenAllowance = vi.mocked(lifi.setTokenAllowance)
+const executeRoute = vi.mocked(lifi.executeRoute)
 
-const walletClient = { account: { address: '0xUSER' } } as never
+const walletClient = { account: { address: '0xUSER' } } as unknown as WalletClient
 
 const params: ZapQuoteParams = {
   fromChainId: 42161,
@@ -77,5 +79,42 @@ describe('LifiZapProvider', () => {
       }),
     ).toBeNull()
     expect(setTokenAllowance).not.toHaveBeenCalled()
+  })
+
+  it('emits deduped progress and returns the receiving-chain destTxHash', async () => {
+    executeRoute.mockImplementation(
+      (async (_route: unknown, opts: { updateRouteHook?: (r: unknown) => void } = {}) => {
+        const fire = (process: Array<{ type: string; status: string; txHash?: string }>) =>
+          opts.updateRouteHook?.({ steps: [{ id: 's1', execution: { process } }] })
+        fire([{ type: 'SWAP', status: 'STARTED' }])
+        fire([
+          { type: 'SWAP', status: 'STARTED' }, // replay -> deduped
+          { type: 'SWAP', status: 'DONE', txHash: '0xswap' },
+        ])
+        fire([
+          { type: 'SWAP', status: 'DONE', txHash: '0xswap' }, // replay -> deduped
+          { type: 'RECEIVING_CHAIN', status: 'DONE', txHash: '0xrecv' },
+        ])
+        return { steps: [{ id: 's1', execution: { process: [
+          { type: 'SWAP', status: 'DONE', txHash: '0xswap' },
+          { type: 'RECEIVING_CHAIN', status: 'DONE', txHash: '0xrecv' },
+        ] } }] }
+      }) as Parameters<typeof executeRoute.mockImplementation>[0],
+    )
+    const p = new LifiZapProvider({ walletClient, integrator: 'aura-card' })
+    const quote = {
+      fromChainId: 42161 as const,
+      fromTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      fromAmount: '1000000', approvalAddress: '0xSPENDER', estToAmount: '990000',
+      isNative: false, raw: {},
+    }
+    const seen: ZapProgress[] = []
+    const res = await p.execute({ quote, onProgress: (e) => seen.push(e) })
+    expect(seen).toEqual([
+      { kind: 'swap', status: 'started' },
+      { kind: 'swap', status: 'done', txHash: '0xswap' },
+      { kind: 'receive', status: 'done', txHash: '0xrecv' },
+    ])
+    expect(res.destTxHash).toBe('0xrecv')
   })
 })

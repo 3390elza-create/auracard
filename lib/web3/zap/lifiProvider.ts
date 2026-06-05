@@ -9,7 +9,7 @@ import {
 import type { WalletClient } from 'viem'
 import { getUsdcAddress } from '@/lib/web3/vault/config'
 import { ZAP_DEST_CHAIN_ID } from './types'
-import { normalizeLifiProcess } from './provider'
+import { normalizeLifiProcess } from './lifiStatus'
 import type {
   ZapExecuteParams,
   ZapExecuteResult,
@@ -23,18 +23,37 @@ export interface LifiZapProviderOptions {
   integrator: string
 }
 
+// @lifi/sdk's createConfig sets module-global state and must run once per app
+// lifecycle. We configure once and let the active wallet client be swapped
+// (e.g. on wallet reconnect) without clobbering the global config.
+let lifiConfigured = false
+let activeWalletClient: WalletClient | null = null
+
+function ensureLifiConfig(integrator: string, walletClient: WalletClient): void {
+  activeWalletClient = walletClient
+  if (lifiConfigured) return
+  createConfig({
+    integrator,
+    providers: [
+      EVM({
+        getWalletClient: async () => {
+          if (!activeWalletClient) throw new Error('LI.FI wallet client not set')
+          return activeWalletClient
+        },
+      }),
+    ],
+  })
+  lifiConfigured = true
+}
+
 // Live ZapProvider over @lifi/sdk v3. The ONLY file importing the SDK. Routes
 // every input token to USDC on Polygon (Circle CCTP for the bridge leg).
-// Approvals are always bounded — exact amount, infiniteApproval:false.
 export class LifiZapProvider implements ZapProvider {
   private readonly walletClient: WalletClient
 
   constructor(opts: LifiZapProviderOptions) {
     this.walletClient = opts.walletClient
-    createConfig({
-      integrator: opts.integrator,
-      providers: [EVM({ getWalletClient: async () => opts.walletClient })],
-    })
+    ensureLifiConfig(opts.integrator, opts.walletClient)
   }
 
   async quote(params: ZapQuoteParams): Promise<ZapQuote> {
@@ -59,12 +78,16 @@ export class LifiZapProvider implements ZapProvider {
 
   async approveExact(quote: ZapQuote): Promise<string | null> {
     if (quote.isNative || !quote.approvalAddress) return null
+    // SECURITY: bounded approval. The bound is enforced by passing the EXACT
+    // amount (never a wallet-wide allowance). `infiniteApproval: false` is kept
+    // as belt-and-suspenders, though it is @deprecated/ignored at runtime in
+    // @lifi/sdk v3 — the `amount` is what guarantees the limit.
     const hash = await setTokenAllowance({
       walletClient: this.walletClient,
       token: { address: quote.fromTokenAddress, chainId: quote.fromChainId },
       spenderAddress: quote.approvalAddress,
       amount: BigInt(quote.fromAmount),
-      infiniteApproval: false, // SECURITY: bounded, exact amount only — never unlimited
+      infiniteApproval: false,
     })
     return hash ?? null
   }
@@ -72,10 +95,16 @@ export class LifiZapProvider implements ZapProvider {
   async execute(params: ZapExecuteParams): Promise<ZapExecuteResult> {
     const route = convertQuoteToRoute(params.quote.raw as Parameters<typeof convertQuoteToRoute>[0])
     let destTxHash: string | undefined
+    // LI.FI re-fires updateRouteHook with the full process list on every
+    // transition; dedupe so each (step, processType, status) is emitted once.
+    const seen = new Map<string, string>()
     const executed = await executeRoute(route, {
       updateRouteHook: (updated) => {
         for (const step of updated.steps ?? []) {
           for (const process of step.execution?.process ?? []) {
+            const key = `${step.id}:${process.type}`
+            if (seen.get(key) === process.status) continue
+            seen.set(key, process.status)
             const progress = normalizeLifiProcess(process.type, process.status, process.txHash)
             if (progress) params.onProgress(progress)
             if (process.type === 'RECEIVING_CHAIN' && process.status === 'DONE') {
