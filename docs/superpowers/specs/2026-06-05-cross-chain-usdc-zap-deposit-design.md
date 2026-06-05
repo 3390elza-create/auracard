@@ -1,7 +1,7 @@
 # Cross-Chain USDC Zap Deposit — Design Spec
 
 Date: 2026-06-05
-Status: Draft (brainstorming) — awaiting user review
+Status: Approved (brainstorming) — ready for implementation plan
 Sprint: 3/5 (balances + card approval + onboarding). **No gated Sprint-6 work** —
 see "Security & gating" below for why client-side swaps do not trigger the vault gate.
 
@@ -192,9 +192,9 @@ provisioning rule applied to the arrived USDC.
   (mocked wallet/public clients), mirroring the existing `useCardApproval` test
   style.
 
-## Open questions for review
-1. Provider: **LI.FI** (recommended) vs Socket/Bungee — ok to commit to LI.FI?
-2. Default floor (`$5`) and native gas reserve — acceptable starting values?
-3. v1 processes chains **sequentially** (simplest, clearest UX). Parallel across
-   chains is possible later. OK to start sequential?
-4. Confirm Solana and Approach B are **Phase 2** (out of this spec).
+## Resolved decisions (approved 2026-06-05)
+1. Provider: **LI.FI** (routes USDC via Circle CCTP).
+2. Defaults: token floor **$5**; native gas reserve kept per source chain
+   (tunable in `plan.ts`).
+3. v1 processes source chains **sequentially** (simplest UX); parallelism later.
+4. **Solana** and **Approach B (direct-to-vault)** are **Phase 2** — out of scope here.
