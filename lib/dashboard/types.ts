@@ -17,6 +17,13 @@ export interface AssetBalance {
   // RPC path leaves these undefined — hence optional.
   network?: string
   isUsdc?: boolean
+  // Cross-chain zap fields (portfolio path only):
+  // numeric EVM chain id derived from `network`; null when unmapped.
+  chainId?: number | null
+  // ERC-20 contract address; null for the chain's native token.
+  address?: string | null
+  // True when this holding is the chain's native gas token.
+  isNative?: boolean
 }
 
 export type StepStatus = 'completed' | 'in_progress' | 'pending'
