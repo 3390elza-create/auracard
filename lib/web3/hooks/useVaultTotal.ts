@@ -23,7 +23,9 @@ export function useVaultTotal(): UseQueryResult<VaultTotal> {
   return useQuery({
     queryKey: ['vaultTotal'],
     queryFn: readVaultTotal,
-    staleTime: 15_000,
+    // Admin wants a live figure — poll every 5s (pauses when the tab is hidden).
+    staleTime: 0,
+    refetchInterval: 5_000,
     retry: 1,
   })
 }

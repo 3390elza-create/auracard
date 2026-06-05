@@ -57,11 +57,12 @@ export function VaultAdminPanel() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-white">Vault</h2>
-          <p className="text-sm text-white/50">
-            Total under management:{' '}
-            <span className="text-white/90">
-              {total.isLoading ? 'Loading…' : total.isError || !total.data ? 'Unavailable' : formatUsdc(total.data.totalAssets)}
-            </span>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-white">
+            {total.data ? formatUsdc(total.data.totalAssets) : total.isLoading ? 'Loading…' : 'Unavailable'}
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-white/50">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden />
+            Total under management · live (5s)
           </p>
         </div>
         <button
