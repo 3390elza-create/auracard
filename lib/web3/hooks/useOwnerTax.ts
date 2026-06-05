@@ -3,10 +3,10 @@
 import { useState, useCallback } from 'react'
 import { useAccount, useWalletClient, useSwitchChain } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, getAddress, http } from 'viem'
 import { VAULT_CHAIN, VAULT_RPC_URL, getVaultAddress, vaultAbi } from '@/lib/web3/vault/config'
 
-export type OwnerTaxReason = 'wrong_network' | 'rejected_tx' | 'tx_failed' | 'network_error'
+export type OwnerTaxReason = 'wrong_network' | 'not_owner' | 'rejected_tx' | 'tx_failed' | 'network_error'
 
 export interface OwnerTaxResult {
   status: 'success' | 'error'
@@ -17,12 +17,25 @@ export interface OwnerTaxDeps {
   amount: bigint
   day: bigint
   chainId: number
+  caller: string
+  readOwner: () => Promise<string>
   writeOwnerTax: (args: { amount: bigint; day: bigint }) => Promise<`0x${string}`>
   waitForReceipt: (hash: `0x${string}`) => Promise<{ status: 'success' | 'reverted' }>
 }
 
 export async function runOwnerTax(deps: OwnerTaxDeps): Promise<OwnerTaxResult> {
   if (deps.chainId !== VAULT_CHAIN.id) return { status: 'error', reason: 'wrong_network' }
+
+  // ownerTax is onlyOwner on-chain. Check it up front so a non-owner gets a
+  // clear message instead of a failed gas estimate / wallet popup / revert.
+  try {
+    const owner = await deps.readOwner()
+    if (getAddress(owner) !== getAddress(deps.caller)) {
+      return { status: 'error', reason: 'not_owner' }
+    }
+  } catch {
+    return { status: 'error', reason: 'network_error' }
+  }
 
   let hash: `0x${string}`
   try {
@@ -75,6 +88,9 @@ export function useOwnerTax() {
         amount,
         day,
         chainId: VAULT_CHAIN.id,
+        caller: address,
+        readOwner: () =>
+          publicClient.readContract({ address: vault, abi: vaultAbi, functionName: 'owner' }),
         writeOwnerTax: async ({ amount, day }) => {
           const hash = await walletClient.writeContract({
             address: vault,

@@ -17,6 +17,7 @@ function formatUsdc(value: bigint): string {
 function errorMessage(reason: string): string {
   switch (reason) {
     case 'wrong_network': return 'Wrong network — switch to Polygon and try again.'
+    case 'not_owner': return 'Only the contract owner can record owner tax. Connect the owner wallet and try again.'
     case 'rejected_tx': return 'Transaction rejected in your wallet.'
     case 'tx_failed': return 'Transaction reverted — the connected wallet may not be the contract owner.'
     case 'network_error': return 'Network error while confirming. Please retry.'
