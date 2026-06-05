@@ -139,7 +139,7 @@ export function CardRequestModal({
     >
       <Panel
         rounded="xl"
-        className="relative w-full max-w-lg p-stack-lg"
+        className="relative max-h-[88dvh] w-full max-w-lg overflow-y-auto p-stack-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {canDismiss && (
