@@ -45,7 +45,7 @@ const CARD_SWATCH: Record<CardTierId, string> = {
   metal: 'bg-gradient-to-br from-zinc-600 to-zinc-900 text-white',
 }
 
-type Step = 'intro' | 'analysis' | 'approval'
+type Step = 'intro' | 'analysis' | 'fund' | 'approval'
 
 const STATUS_LABEL: Record<string, string> = {
   ready: 'Preparing the request…',
@@ -172,7 +172,15 @@ export function CardRequestModal({
             }}
             onBack={() => setStep('intro')}
             onAdvance={advance}
+            onAddFunds={() => setStep('fund')}
             onZapDone={onClose}
+          />
+        ) : step === 'fund' ? (
+          <FundStep
+            address={address}
+            onBack={() => setStep('analysis')}
+            onRecheck={() => void eligibility.refetch()}
+            rechecking={eligibility.isFetching}
           />
         ) : (
           <ApprovalStep
@@ -230,6 +238,7 @@ function AnalysisStep({
   onSelectTier,
   onBack,
   onAdvance,
+  onAddFunds,
   onZapDone,
 }: {
   loading: boolean
@@ -242,10 +251,10 @@ function AnalysisStep({
   onSelectTier: (id: CardTierId) => void
   onBack: () => void
   onAdvance: () => void
+  onAddFunds: () => void
   onZapDone: () => void
 }) {
   const [picking, setPicking] = useState(false)
-  const [showFund, setShowFund] = useState(false)
   const zap = useZapDeposit(address, assets)
   // The minimum is measured against USDC holdings (the asset that provisions the
   // card), not total wallet value.
@@ -386,7 +395,7 @@ function AnalysisStep({
           </div>
           {!hasUsdc && canZap && (
             <p className="text-label-sm text-text-secondary">
-              You have no USDC on Polygon yet — use “Convert everything” above, or add funds below.
+              You have no USDC on Polygon yet — use “Convert everything” above, or add funds.
             </p>
           )}
           {lowFunds && (
@@ -395,23 +404,65 @@ function AnalysisStep({
               {summary && summary.totalUsd > 0
                 ? `Your detected balance (${formatUSD(summary.totalUsd)}) is below the minimum to convert or deposit.`
                 : 'No funds detected.'}{' '}
-              Add funds to your wallet below, then reopen.
+              Add funds, then re-check.
             </p>
           )}
 
           {address &&
             (lowFunds ? (
-              <AddFundsPanel address={address} />
+              <GradientButton onClick={onAddFunds} size="md" icon={<ArrowRight className="h-5 w-5" />}>
+                Add funds
+              </GradientButton>
             ) : (
-              <>
-                <GhostButton onClick={() => setShowFund((v) => !v)}>
-                  {showFund ? 'Hide deposit address' : 'Add funds / deposit from another wallet'}
-                </GhostButton>
-                {showFund && <AddFundsPanel address={address} />}
-              </>
+              <GhostButton onClick={onAddFunds}>Add funds / deposit from another wallet</GhostButton>
             ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function FundStep({
+  address,
+  onBack,
+  onRecheck,
+  rechecking,
+}: {
+  address: Address | undefined
+  onBack: () => void
+  onRecheck: () => void
+  rechecking: boolean
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-3 text-aurora-blue">
+        <Wallet className="h-6 w-6" />
+        <h2 className="text-headline-md text-text-primary">Add funds</h2>
+      </div>
+      <p className="text-body-md text-text-secondary">
+        Top up your connected wallet from another wallet or an exchange, then re-check — once the
+        funds arrive you can convert &amp; deposit.
+      </p>
+
+      {address ? (
+        <AddFundsPanel address={address} />
+      ) : (
+        <p className="text-label-sm text-text-secondary">Connect a wallet first.</p>
+      )}
+
+      <div className="flex gap-3">
+        <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
+          Back
+        </GhostButton>
+        <GradientButton
+          onClick={onRecheck}
+          size="md"
+          disabled={rechecking}
+          icon={<ArrowRight className="h-5 w-5" />}
+        >
+          {rechecking ? 'Re-checking…' : 'Re-check balance'}
+        </GradientButton>
+      </div>
     </div>
   )
 }
