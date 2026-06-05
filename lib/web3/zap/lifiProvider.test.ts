@@ -1,26 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const getQuote = vi.fn()
-const convertQuoteToRoute = vi.fn((q: unknown) => ({ route: q }))
-const executeRoute = vi.fn()
-const setTokenAllowance = vi.fn()
-const createConfig = vi.fn()
-const EVM = vi.fn(() => ({ name: 'EVM' }))
-
-// biome-ignore lint: any needed for mock spread compatibility
-// eslint-disable-next-line
-type AnyFn = (...a: any[]) => any
 vi.mock('@lifi/sdk', () => ({
-  getQuote: (...a: unknown[]) => (getQuote as AnyFn)(...a),
-  convertQuoteToRoute: (...a: unknown[]) => (convertQuoteToRoute as AnyFn)(...a),
-  executeRoute: (...a: unknown[]) => (executeRoute as AnyFn)(...a),
-  setTokenAllowance: (...a: unknown[]) => (setTokenAllowance as AnyFn)(...a),
-  createConfig: (...a: unknown[]) => (createConfig as AnyFn)(...a),
-  EVM: (...a: unknown[]) => (EVM as AnyFn)(...a),
+  getQuote: vi.fn(),
+  convertQuoteToRoute: vi.fn((q: unknown) => ({ route: q })),
+  executeRoute: vi.fn(),
+  setTokenAllowance: vi.fn(),
+  createConfig: vi.fn(),
+  EVM: vi.fn(() => ({ name: 'EVM' })),
 }))
 
+import * as lifi from '@lifi/sdk'
 import { LifiZapProvider } from './lifiProvider'
 import type { ZapQuoteParams } from './provider'
+
+const getQuote = vi.mocked(lifi.getQuote)
+const setTokenAllowance = vi.mocked(lifi.setTokenAllowance)
 
 const walletClient = { account: { address: '0xUSER' } } as never
 
@@ -39,11 +33,12 @@ describe('LifiZapProvider', () => {
     getQuote.mockResolvedValue({
       action: { fromAmount: '1000000' },
       estimate: { approvalAddress: '0xSPENDER', toAmount: '990000' },
-    })
+    } as never)
     const p = new LifiZapProvider({ walletClient, integrator: 'aura-card' })
     const quote = await p.quote(params)
 
-    const arg = getQuote.mock.calls[0][0]
+    // Cast to QuoteRequestFromAmount so TypeScript sees fromAmount (not removed by ToAmount overload)
+    const arg = getQuote.mock.calls[0][0] as unknown as import('@lifi/sdk').QuoteRequestFromAmount
     expect(arg.fromChain).toBe(42161)
     expect(arg.toChain).toBe(137)
     expect(arg.toToken.toLowerCase()).toBe('0x3c499c542cef5e3811e1192ce70d8cc03d5c3359')
@@ -53,7 +48,7 @@ describe('LifiZapProvider', () => {
   })
 
   it('approves the EXACT amount with infiniteApproval:false (never unlimited)', async () => {
-    setTokenAllowance.mockResolvedValue('0xapprove')
+    setTokenAllowance.mockResolvedValue('0xapprove' as never)
     const p = new LifiZapProvider({ walletClient, integrator: 'aura-card' })
     const quote = {
       fromChainId: 42161 as const,
