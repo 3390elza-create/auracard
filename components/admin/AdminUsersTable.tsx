@@ -78,14 +78,6 @@ export function AdminUsersTable({ adminEmail }: { adminEmail: string }) {
                   <td className="px-4 py-3 text-white/60">{new Date(row.firstSeenAt).toLocaleDateString('en-US')}</td>
                   <td className="px-4 py-3 text-white/60">{new Date(row.lastLoginAt).toLocaleDateString('en-US')}</td>
                   <td className="px-4 py-3">
-                    {/* Mock-only: performs no on-chain action and changes no state. */}
-                    <button
-                      type="button"
-                      onClick={() => alert('Claim is a mock — no action performed.')}
-                      className="rounded-lg border border-white/10 px-3 py-1 text-xs text-white/70 hover:bg-white/5"
-                    >
-                      Claim
-                    </button>
                   </td>
                 </tr>
               ))}
