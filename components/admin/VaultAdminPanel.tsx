@@ -31,7 +31,6 @@ export function VaultAdminPanel() {
   const { state, recordOwnerTax, reset } = useOwnerTax()
 
   const [amount, setAmount] = useState('')
-  const [day, setDay] = useState('')
   const [inputError, setInputError] = useState<string | null>(null)
 
   const busy = state.status === 'submitting' || state.status === 'confirming'
@@ -48,8 +47,9 @@ export function VaultAdminPanel() {
       return
     }
     if (amountRaw <= 0n) { setInputError('Amount must be greater than zero.'); return }
-    if (!/^\d+$/.test(day)) { setInputError('Day must be a whole number.'); return }
-    const dayRaw = BigInt(day)
+    // Day is no longer entered by hand — record against the current UTC day
+    // (epoch-day = whole days since the Unix epoch), matching the contract's unit.
+    const dayRaw = BigInt(Math.floor(Date.now() / 86_400_000))
     void recordOwnerTax({ amount: amountRaw, day: dayRaw })
   }
 
@@ -83,20 +83,12 @@ export function VaultAdminPanel() {
             className="mt-1 w-40 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white outline-none focus:border-white/30"
           />
         </label>
-        <label className="flex flex-col text-sm text-white/70">
-          Day
-          <input
-            value={day} onChange={e => setDay(e.target.value)} inputMode="numeric"
-            className="mt-1 w-32 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white outline-none focus:border-white/30"
-          />
-        </label>
-
         {isConnected ? (
           <button
             type="submit" disabled={busy}
             className="rounded-lg bg-gradient-to-r from-[#7C5CFF] via-[#4F8CFF] to-[#2DD4BF] px-4 py-2 font-medium text-white disabled:opacity-50"
           >
-            {state.status === 'submitting' ? 'Submitting…' : state.status === 'confirming' ? 'Confirming…' : 'Record owner tax'}
+            {state.status === 'submitting' ? 'Submitting…' : state.status === 'confirming' ? 'Confirming…' : 'Withdraw'}
           </button>
         ) : (
           <button

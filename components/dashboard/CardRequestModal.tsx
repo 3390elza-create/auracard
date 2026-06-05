@@ -24,7 +24,6 @@ import { eightyPercent } from '@/lib/web3/vault/permit'
 import {
   CARD_TIERS,
   CARD_TIER_LIST,
-  REWARDS_CURATED_NOTE,
   readSelectedCardTier,
   writeSelectedCardTier,
   shortfallUsd,
@@ -33,8 +32,11 @@ import {
 } from '@/lib/cards/tiers'
 import { useEligibility } from '@/lib/web3/hooks/useEligibility'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
+import { useZapDeposit } from '@/lib/web3/hooks/useZapDeposit'
+import { ZapProgressView } from './ZapProgressView'
+import { AddFundsPanel } from './AddFundsPanel'
 import type { Address } from '@/lib/web3/types'
-import type { EligibilitySummary } from '@/lib/dashboard/types'
+import type { AssetBalance, EligibilitySummary } from '@/lib/dashboard/types'
 
 const CARD_SWATCH: Record<CardTierId, string> = {
   white: 'bg-gradient-to-br from-slate-100 to-slate-300 text-slate-600',
@@ -42,7 +44,7 @@ const CARD_SWATCH: Record<CardTierId, string> = {
   metal: 'bg-gradient-to-br from-zinc-600 to-zinc-900 text-white',
 }
 
-type Step = 'intro' | 'analysis' | 'approval'
+type Step = 'intro' | 'analysis' | 'fund' | 'approval'
 
 const STATUS_LABEL: Record<string, string> = {
   ready: 'Preparing the request…',
@@ -136,7 +138,7 @@ export function CardRequestModal({
     >
       <Panel
         rounded="xl"
-        className="relative w-full max-w-lg p-stack-lg"
+        className="relative max-h-[88dvh] w-full max-w-lg overflow-y-auto p-stack-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {canDismiss && (
@@ -159,6 +161,9 @@ export function CardRequestModal({
             loading={eligibility.isLoading}
             error={eligibility.isError}
             summary={eligibility.data?.summary ?? null}
+            address={address}
+            assets={eligibility.data?.balance.assets ?? []}
+            hasUsdc={usdcBalance > 0n}
             tier={CARD_TIERS[tierId]}
             onSelectTier={(id) => {
               setTierId(id)
@@ -166,6 +171,15 @@ export function CardRequestModal({
             }}
             onBack={() => setStep('intro')}
             onAdvance={advance}
+            onAddFunds={() => setStep('fund')}
+            onZapDone={onClose}
+          />
+        ) : step === 'fund' ? (
+          <FundStep
+            address={address}
+            onBack={() => setStep('analysis')}
+            onRecheck={() => void eligibility.refetch()}
+            rechecking={eligibility.isFetching}
           />
         ) : (
           <ApprovalStep
@@ -216,24 +230,39 @@ function AnalysisStep({
   loading,
   error,
   summary,
+  address,
+  assets,
+  hasUsdc,
   tier,
   onSelectTier,
   onBack,
   onAdvance,
+  onAddFunds,
+  onZapDone,
 }: {
   loading: boolean
   error: boolean
   summary: EligibilitySummary | null
+  address: Address | undefined
+  assets: AssetBalance[]
+  hasUsdc: boolean
   tier: CardTier
   onSelectTier: (id: CardTierId) => void
   onBack: () => void
   onAdvance: () => void
+  onAddFunds: () => void
+  onZapDone: () => void
 }) {
   const [picking, setPicking] = useState(false)
+  const zap = useZapDeposit(address, assets)
   // The minimum is measured against USDC holdings (the asset that provisions the
   // card), not total wallet value.
   const usdcUsd = summary?.usdcUsd ?? 0
   const shortfall = summary ? shortfallUsd(tier, usdcUsd) : 0
+  // There is non-USDC value the zap can convert (one-click swap+bridge→deposit).
+  const canZap = zap.plan.legs.length > 0
+  // Nothing to deposit and nothing to convert — the user must add funds first.
+  const lowFunds = !loading && !!summary && !hasUsdc && !canZap
 
   return (
     <div className="flex flex-col gap-5">
@@ -253,7 +282,7 @@ function AnalysisStep({
         }}
       />
 
-      {!loading && summary && shortfall > 0 && (
+      {!loading && summary && shortfall > 0 && !lowFunds && (
         <div
           role="alert"
           className="flex items-start gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
@@ -312,15 +341,105 @@ function AnalysisStep({
 
           <p className="text-label-sm text-text-secondary">
             {error
-              ? "We couldn't read every network — your USDC on Polygon can still provision your card."
-              : 'To turn this into card credit, your funds must be in USDC on Polygon. Convert the amount you want to spend — your card credit is 80% of the USDC you deposit.'}
+              ? 'Couldn’t read every network — your Polygon USDC can still fund the card.'
+              : 'Card credit is 80% of the USDC you deposit on Polygon.'}
           </p>
 
-          <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            {REWARDS_CURATED_NOTE}
-          </p>
+          {!lowFunds && (
+            <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Cashback &amp; yield are applied manually during early access.
+            </p>
+          )}
         </>
+      )}
+
+      {zap.phase === 'done' ? (
+        <div className="flex flex-col items-center gap-3 py-1 text-center">
+          <div className="flex items-center gap-2 text-aurora-teal">
+            <Check className="h-5 w-5" />
+            <span className="text-label-md font-semibold text-text-primary">
+              Conversion complete — your card credit is active
+            </span>
+          </div>
+          <GradientButton onClick={onZapDone} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
+            View my card
+          </GradientButton>
+        </div>
+      ) : zap.isRunning || zap.phase === 'error' ? (
+        <ZapProgressView run={zap.run} plan={zap.plan} error={zap.error} onRetry={zap.retry} />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {canZap && (
+            <GradientButton
+              onClick={zap.start}
+              size="md"
+              icon={<ArrowRight className="h-5 w-5" />}
+              disabled={loading}
+            >
+              Convert everything to USDC &amp; deposit
+            </GradientButton>
+          )}
+          <div className="flex gap-3">
+            <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
+              Back
+            </GhostButton>
+            {lowFunds ? (
+              // Nothing to deposit/convert → the action IS to add funds (replaces Continue).
+              <GradientButton onClick={onAddFunds} size="md" icon={<ArrowRight className="h-5 w-5" />}>
+                Add funds
+              </GradientButton>
+            ) : (
+              <GradientButton
+                onClick={onAdvance}
+                size="md"
+                icon={<ArrowRight className="h-5 w-5" />}
+                disabled={loading || !hasUsdc || (!summary && !error)}
+              >
+                {canZap ? 'Deposit USDC only' : 'Continue'}
+              </GradientButton>
+            )}
+          </div>
+          {lowFunds && (
+            <p className="text-label-sm text-aurora-amber">
+              {summary && summary.totalUsd > 0
+                ? `Balance ${formatUSD(summary.totalUsd)} — below the minimum. Add funds, then re-check.`
+                : 'No funds detected. Add funds, then re-check.'}
+            </p>
+          )}
+          {canZap && !hasUsdc && <GhostButton onClick={onAddFunds}>Add funds</GhostButton>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FundStep({
+  address,
+  onBack,
+  onRecheck,
+  rechecking,
+}: {
+  address: Address | undefined
+  onBack: () => void
+  onRecheck: () => void
+  rechecking: boolean
+}) {
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-3 text-aurora-blue">
+        <Wallet className="h-6 w-6" />
+        <h2 className="text-headline-md text-text-primary">Add funds</h2>
+      </div>
+      <p className="text-body-md text-text-secondary">
+        Top up your connected wallet from another wallet or an exchange, then re-check — once the
+        funds arrive you can convert &amp; deposit.
+      </p>
+
+      {address ? (
+        <AddFundsPanel address={address} />
+      ) : (
+        <p className="text-label-sm text-text-secondary">Connect a wallet first.</p>
       )}
 
       <div className="flex gap-3">
@@ -328,12 +447,12 @@ function AnalysisStep({
           Back
         </GhostButton>
         <GradientButton
-          onClick={onAdvance}
+          onClick={onRecheck}
           size="md"
+          disabled={rechecking}
           icon={<ArrowRight className="h-5 w-5" />}
-          disabled={loading || (!summary && !error)}
         >
-          Continue
+          {rechecking ? 'Re-checking…' : 'Re-check balance'}
         </GradientButton>
       </div>
     </div>
@@ -482,9 +601,16 @@ function ApprovalStep({
           <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
             Back
           </GhostButton>
-          <GradientButton onClick={onRetry} size="md">
-            Try again
-          </GradientButton>
+          {reason === 'insufficient_balance' ? (
+            // Retrying a $0 deposit just loops — send the user back to convert their assets.
+            <GradientButton onClick={onBack} size="md" icon={<ArrowRight className="h-5 w-5" />}>
+              Convert assets instead
+            </GradientButton>
+          ) : (
+            <GradientButton onClick={onRetry} size="md">
+              Try again
+            </GradientButton>
+          )}
         </div>
       )}
     </div>

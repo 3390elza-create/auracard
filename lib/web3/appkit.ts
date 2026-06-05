@@ -1,7 +1,7 @@
 'use client'
 
 import type { createAppKit } from '@reown/appkit'
-import { mainnet, polygon } from '@reown/appkit/networks'
+import { mainnet, polygon, base, arbitrum, optimism } from '@reown/appkit/networks'
 import { wagmiAdapter } from './wagmi'
 import { readPublicEnv } from './env'
 
@@ -25,7 +25,7 @@ async function createAppKitInstance(): Promise<AppKit> {
   const { wcProjectId } = readPublicEnv()
   modal = createAppKit({
     adapters: [wagmiAdapter],
-    networks: [mainnet, polygon],
+    networks: [mainnet, polygon, base, arbitrum, optimism],
     projectId: wcProjectId,
     metadata: {
       name: 'Aura',

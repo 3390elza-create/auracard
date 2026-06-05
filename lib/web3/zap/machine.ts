@@ -39,10 +39,10 @@ export type LegEvent =
 // USDC ends up on Polygon directly.
 const FORWARD: Record<LegStatus, LegStatus[]> = {
   idle: ['quoting'],
-  quoting: ['awaiting_approval', 'depositing'],
-  awaiting_approval: ['swapping', 'depositing'],
-  swapping: ['bridging', 'depositing'],
-  bridging: ['arriving'],
+  quoting: ['awaiting_approval', 'swapping', 'bridging', 'depositing'],
+  awaiting_approval: ['swapping', 'bridging', 'arriving', 'depositing'],
+  swapping: ['bridging', 'arriving', 'depositing'],
+  bridging: ['arriving', 'depositing'],
   arriving: ['depositing'],
   depositing: ['done'],
   done: [],
