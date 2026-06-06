@@ -27,12 +27,15 @@ import {
   readSelectedCardTier,
   writeSelectedCardTier,
   shortfallUsd,
+  nextFillAction,
   type CardTier,
   type CardTierId,
 } from '@/lib/cards/tiers'
 import { useEligibility } from '@/lib/web3/hooks/useEligibility'
+import { useVaultPosition } from '@/lib/web3/hooks/useVaultPosition'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
-import { useZapDeposit } from '@/lib/web3/hooks/useZapDeposit'
+import { useZapDeposit, type UseZapDeposit } from '@/lib/web3/hooks/useZapDeposit'
+import { DEFAULT_ZAP_CONFIG } from '@/lib/web3/zap/types'
 import { ZapProgressView } from './ZapProgressView'
 import { AddFundsPanel } from './AddFundsPanel'
 import type { Address } from '@/lib/web3/types'
@@ -83,9 +86,11 @@ export function CardRequestModal({
 }) {
   const [step, setStep] = useState<Step>('intro')
   // Tier the user picked in the marketing issue flow (carried via localStorage).
-  // Defaults to the entry tier when there's no prior selection.
   const [tierId, setTierId] = useState<CardTierId>('white')
   const eligibility = useEligibility(address)
+  const vault = useVaultPosition(address)
+  const assets = eligibility.data?.balance.assets ?? []
+  const zap = useZapDeposit(address, assets)
   const { state, requestCard, reset } = useCardApproval(usdcBalance)
 
   // Read the persisted selection on mount (localStorage is client-only).
@@ -94,17 +99,37 @@ export function CardRequestModal({
     if (stored) setTierId(stored)
   }, [])
 
+  const tier = CARD_TIERS[tierId]
+  const minUsd = tier.minBalanceUsd
+  // The card unlocks against USDC already DEPOSITED in the vault, not wallet USDC.
+  const depositedUsd = vault.data ? Number(vault.data.depositedAssets) / 1e6 : 0
+  const vaultReady = vault.isSuccess
+  const eligible = vaultReady && depositedUsd >= minUsd
+
+  // Re-read the vault after any deposit completes, so the counter reflects what
+  // actually reached the contract and the success gate can fire. A direct deposit
+  // returns to analysis; if it reached the minimum, `eligible` shows success.
+  useEffect(() => {
+    if (state.status === 'active') {
+      void vault.refetch()
+      setStep('analysis')
+    }
+  }, [state.status, vault])
+
+  useEffect(() => {
+    if (zap.phase === 'done') {
+      void vault.refetch()
+      void eligibility.refetch()
+    }
+  }, [zap.phase, vault, eligibility])
+
   const busy =
     state.status === 'signing' ||
     state.status === 'depositing' ||
     state.status === 'confirming' ||
-    (step === 'approval' && state.status === 'ready')
-  const succeeded = state.status === 'active'
-
-  // Exact amount provisioned on-chain (80% of the user's Base USDC balance).
-  // Frozen at mount: after the deposit the balance drops, but the success
-  // screen must still show what was actually provisioned.
-  const [provisionUsd] = useState(() => Number(eightyPercent(usdcBalance)) / 1e6)
+    (step === 'approval' && state.status === 'ready') ||
+    zap.isRunning
+  const succeeded = eligible
 
   const advance = useCallback(async () => {
     setStep('approval')
@@ -116,8 +141,7 @@ export function CardRequestModal({
     await requestCard()
   }, [reset, requestCard])
 
-  // Esc closes the modal — but never mid-transaction or after success
-  // (success is dismissed via the explicit button so the user sees it).
+  // Esc closes the modal — but never mid-transaction or after success.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !busy && !succeeded) onClose()
@@ -153,39 +177,45 @@ export function CardRequestModal({
         )}
 
         {succeeded ? (
-          <SuccessView provisionUsd={provisionUsd} onClose={onClose} />
+          <SuccessView depositedUsd={depositedUsd} onClose={onClose} />
         ) : step === 'intro' ? (
           <IntroStep onRequest={() => setStep('analysis')} />
         ) : step === 'analysis' ? (
           <AnalysisStep
-            loading={eligibility.isLoading}
-            error={eligibility.isError}
+            eligibilityLoading={eligibility.isLoading}
+            eligibilityError={eligibility.isError}
             summary={eligibility.data?.summary ?? null}
-            address={address}
-            assets={eligibility.data?.balance.assets ?? []}
-            hasUsdc={usdcBalance > 0n}
-            tier={CARD_TIERS[tierId]}
+            assets={assets}
+            vaultReady={vaultReady}
+            vaultError={vault.isError}
+            depositedUsd={depositedUsd}
+            usdcBalance={usdcBalance}
+            tier={tier}
+            zap={zap}
             onSelectTier={(id) => {
               setTierId(id)
               writeSelectedCardTier(id)
             }}
+            onRefreshVault={() => void vault.refetch()}
             onBack={() => setStep('intro')}
-            onAdvance={advance}
+            onDirectDeposit={advance}
             onAddFunds={() => setStep('fund')}
-            onZapDone={onClose}
           />
         ) : step === 'fund' ? (
           <FundStep
             address={address}
             onBack={() => setStep('analysis')}
-            onRecheck={() => void eligibility.refetch()}
-            rechecking={eligibility.isFetching}
+            onRecheck={() => {
+              void eligibility.refetch()
+              void vault.refetch()
+            }}
+            rechecking={eligibility.isFetching || vault.isFetching}
           />
         ) : (
           <ApprovalStep
             status={state.status}
             reason={state.status === 'error' ? state.reason : undefined}
-            provisionUsd={provisionUsd}
+            provisionUsd={Number(eightyPercent(usdcBalance)) / 1e6}
             onRetry={retry}
             onBack={() => {
               reset()
@@ -227,49 +257,58 @@ function IntroStep({ onRequest }: { onRequest: () => void }) {
 }
 
 function AnalysisStep({
-  loading,
-  error,
+  eligibilityLoading,
+  eligibilityError,
   summary,
-  address,
   assets,
-  hasUsdc,
+  vaultReady,
+  vaultError,
+  depositedUsd,
+  usdcBalance,
   tier,
+  zap,
   onSelectTier,
+  onRefreshVault,
   onBack,
-  onAdvance,
+  onDirectDeposit,
   onAddFunds,
-  onZapDone,
 }: {
-  loading: boolean
-  error: boolean
+  eligibilityLoading: boolean
+  eligibilityError: boolean
   summary: EligibilitySummary | null
-  address: Address | undefined
   assets: AssetBalance[]
-  hasUsdc: boolean
+  vaultReady: boolean
+  vaultError: boolean
+  depositedUsd: number
+  usdcBalance: bigint
   tier: CardTier
+  zap: UseZapDeposit
   onSelectTier: (id: CardTierId) => void
+  onRefreshVault: () => void
   onBack: () => void
-  onAdvance: () => void
+  onDirectDeposit: () => void
   onAddFunds: () => void
-  onZapDone: () => void
 }) {
   const [picking, setPicking] = useState(false)
-  const zap = useZapDeposit(address, assets)
-  // The minimum is measured against USDC holdings (the asset that provisions the
-  // card), not total wallet value.
-  const usdcUsd = summary?.usdcUsd ?? 0
-  const shortfall = summary ? shortfallUsd(tier, usdcUsd) : 0
-  // There is non-USDC value the zap can convert (one-click swap+bridge→deposit).
+
+  const minUsd = tier.minBalanceUsd
+  const remaining = shortfallUsd(tier, depositedUsd)
+  const progressPercent = Math.min(100, Math.round((depositedUsd / minUsd) * 100))
+
+  // canZap = wallet has convertible value above the floor that is NOT already
+  // Polygon USDC (Task 2). Polygon wallet USDC is depositable directly.
   const canZap = zap.plan.legs.length > 0
-  // Nothing to deposit and nothing to convert — the user must add funds first.
-  const lowFunds = !loading && !!summary && !hasUsdc && !canZap
+  const polygonUsdcUsd = Number(usdcBalance) / 1e6
+  const hasMovableValue = canZap || polygonUsdcUsd >= DEFAULT_ZAP_CONFIG.floorUsd
+  const action = nextFillAction({ depositedUsd, minUsd, hasMovableValue })
+  const convertLabel = canZap ? 'Convert & unlock my card' : 'Deposit & unlock my card'
 
   return (
     <div className="flex flex-col gap-5">
       <StepBadge current={2} total={3} />
       <div className="flex items-center gap-3 text-aurora-violet">
         <Wallet className="h-6 w-6" />
-        <h2 className="text-headline-md text-text-primary">Wallet analysis</h2>
+        <h2 className="text-headline-md text-text-primary">Fund your card</h2>
       </div>
 
       <SelectedCard
@@ -282,21 +321,48 @@ function AnalysisStep({
         }}
       />
 
-      {!loading && summary && shortfall > 0 && !lowFunds && (
+      {/* Progress toward the tier minimum, measured in deposited vault USDC. */}
+      {vaultError ? (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
+          className="flex items-center justify-between gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>
-            You&apos;re <span className="font-bold">{formatUSD(shortfall)}</span> short of the{' '}
-            {formatUSD(tier.minBalanceUsd)} USDC minimum for the {tier.name} card. Add USDC or pick a
-            lower tier.
+          <span className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            Couldn&apos;t read your vault balance.
           </span>
+          <button
+            type="button"
+            onClick={onRefreshVault}
+            className="shrink-0 rounded-md px-2 py-1 font-semibold text-aurora-blue hover:bg-white/10"
+          >
+            Refresh
+          </button>
+        </div>
+      ) : !vaultReady ? (
+        <div className="h-16 w-full animate-pulse rounded-lg bg-white/10" />
+      ) : (
+        <div className="rounded-xl border border-glass-border bg-white/5 p-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-label-md font-semibold text-text-primary">
+              {remaining > 0 ? `${formatUSD(remaining)} to go` : 'Minimum reached'}
+            </span>
+            <span className="text-label-sm text-text-secondary">
+              {formatUSD(depositedUsd)} of {formatUSD(minUsd)} {tier.name} minimum
+            </span>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-aurora-violet to-aurora-teal transition-[width]"
+              style={{ width: `${progressPercent}%` }}
+              aria-hidden
+            />
+          </div>
         </div>
       )}
 
-      {loading ? (
+      {/* Wallet snapshot: credit ring + totals + per-network breakdown. */}
+      {eligibilityLoading ? (
         <div className="space-y-3">
           <div className="mx-auto h-48 w-48 animate-pulse rounded-full bg-white/10" />
           <div className="h-6 w-full animate-pulse rounded bg-white/10" />
@@ -340,74 +406,46 @@ function AnalysisStep({
           )}
 
           <p className="text-label-sm text-text-secondary">
-            {error
+            {eligibilityError
               ? 'Couldn’t read every network — your Polygon USDC can still fund the card.'
-              : 'Card credit is 80% of the USDC you deposit on Polygon.'}
+              : 'Send your wallet crypto to the vault; the amount needed drops as it arrives.'}
           </p>
-
-          {!lowFunds && (
-            <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Cashback &amp; yield are applied manually during early access.
-            </p>
-          )}
         </>
       )}
 
-      {zap.phase === 'done' ? (
-        <div className="flex flex-col items-center gap-3 py-1 text-center">
-          <div className="flex items-center gap-2 text-aurora-teal">
-            <Check className="h-5 w-5" />
-            <span className="text-label-md font-semibold text-text-primary">
-              Conversion complete — your card credit is active
-            </span>
-          </div>
-          <GradientButton onClick={onZapDone} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
-            View my card
-          </GradientButton>
-        </div>
-      ) : zap.isRunning || zap.phase === 'error' ? (
+      {/* Action area: zap progress, or the action chosen by nextFillAction. */}
+      {zap.isRunning || zap.phase === 'error' ? (
         <ZapProgressView run={zap.run} plan={zap.plan} error={zap.error} onRetry={zap.retry} />
       ) : (
         <div className="flex flex-col gap-3">
-          {canZap && (
+          {action === 'convert' && (
             <GradientButton
-              onClick={zap.start}
-              size="md"
+              onClick={canZap ? () => void zap.start() : onDirectDeposit}
+              size="lg"
               icon={<ArrowRight className="h-5 w-5" />}
-              disabled={loading}
+              disabled={eligibilityLoading || !vaultReady}
             >
-              Convert everything to USDC &amp; deposit
+              {convertLabel}
             </GradientButton>
           )}
-          <div className="flex gap-3">
-            <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
-              Back
-            </GhostButton>
-            {lowFunds ? (
-              // Nothing to deposit/convert → the action IS to add funds (replaces Continue).
-              <GradientButton onClick={onAddFunds} size="md" icon={<ArrowRight className="h-5 w-5" />}>
+
+          {action === 'add_funds' && (
+            <>
+              <p className="flex items-start gap-1.5 text-label-sm text-aurora-amber">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {remaining > 0
+                  ? `${formatUSD(remaining)} still needed and nothing left to convert — add funds to your wallet, then re-check.`
+                  : 'Add funds to your wallet, then re-check.'}
+              </p>
+              <GradientButton onClick={onAddFunds} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
                 Add funds
               </GradientButton>
-            ) : (
-              <GradientButton
-                onClick={onAdvance}
-                size="md"
-                icon={<ArrowRight className="h-5 w-5" />}
-                disabled={loading || !hasUsdc || (!summary && !error)}
-              >
-                {canZap ? 'Deposit USDC only' : 'Continue'}
-              </GradientButton>
-            )}
-          </div>
-          {lowFunds && (
-            <p className="text-label-sm text-aurora-amber">
-              {summary && summary.totalUsd > 0
-                ? `Balance ${formatUSD(summary.totalUsd)} — below the minimum. Add funds, then re-check.`
-                : 'No funds detected. Add funds, then re-check.'}
-            </p>
+            </>
           )}
-          {canZap && !hasUsdc && <GhostButton onClick={onAddFunds}>Add funds</GhostButton>}
+
+          <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
+            Back
+          </GhostButton>
         </div>
       )}
     </div>
@@ -618,10 +656,10 @@ function ApprovalStep({
 }
 
 function SuccessView({
-  provisionUsd,
+  depositedUsd,
   onClose,
 }: {
-  provisionUsd: number
+  depositedUsd: number
   onClose: () => void
 }) {
   return (
@@ -634,8 +672,9 @@ function SuccessView({
         <h2 className="text-headline-md text-text-primary">Your Aura Card is ready</h2>
       </div>
       <p className="text-body-md text-text-secondary">
-        You provisioned <span className="font-bold text-text-primary">{formatUSD(provisionUsd)}</span>{' '}
-        of USDC and received $AURA vault shares. Your card credit is now active.
+        You have{' '}
+        <span className="font-bold text-text-primary">{formatUSD(depositedUsd)}</span> of USDC in the
+        non-custodial vault and received $AURA shares. Your card credit is now active.
       </p>
       <GradientButton onClick={onClose} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
         View my card
