@@ -46,6 +46,7 @@ export type SkipReason =
   | 'missing_address'
   | 'below_floor'
   | 'native_below_reserve'
+  | 'already_usdc'
 
 export interface SkippedToken {
   token: ZapToken

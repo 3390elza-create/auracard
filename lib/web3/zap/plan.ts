@@ -64,6 +64,12 @@ export function buildZapPlan(
 
     const token = toZapToken(asset, chainId)
 
+    // Destination-chain USDC needs no swap/bridge — the final deposit sweeps it.
+    if (token.isUsdc && chainId === ZAP_DEST_CHAIN_ID) {
+      skipped.push({ token, reason: 'already_usdc' })
+      continue
+    }
+
     let amountRaw: bigint
     let usdValue: number
     if (token.isNative) {

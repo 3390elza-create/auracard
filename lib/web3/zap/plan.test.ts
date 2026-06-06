@@ -95,4 +95,22 @@ describe('buildZapPlan', () => {
     expect(plan.legs.map((l) => l.chainId)).toEqual([137, 1, 8453])
     expect(plan.totalUsd).toBe(1060)
   })
+
+  it('excludes destination-chain USDC from legs (deposited directly, not swapped)', () => {
+    const plan = buildZapPlan(
+      [asset({ chainId: 137, address: '0xusdc', isUsdc: true, usdValue: 500, amountRaw: 500_000_000n })],
+      DEFAULT_ZAP_CONFIG,
+    )
+    expect(plan.legs).toHaveLength(0)
+    expect(plan.skipped[0].reason).toBe('already_usdc')
+  })
+
+  it('still converts a non-USDC holding on the destination chain', () => {
+    const plan = buildZapPlan(
+      [asset({ chainId: 137, address: '0xpol', isUsdc: false, usdValue: 50, amountRaw: 50n })],
+      DEFAULT_ZAP_CONFIG,
+    )
+    expect(plan.legs).toHaveLength(1)
+    expect(plan.legs[0].chainId).toBe(137)
+  })
 })
