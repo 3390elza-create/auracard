@@ -43,6 +43,31 @@ export function meetsMinimum(tier: CardTier, balanceUsd: number): boolean {
   return balanceUsd >= tier.minBalanceUsd
 }
 
+/** The next step toward meeting a tier minimum in the vault. */
+export type FillAction = 'eligible' | 'convert' | 'add_funds'
+
+/**
+ * Decide the next step toward a tier minimum, given how much USDC is already
+ * deposited in the vault and whether the wallet still holds movable value
+ * (crypto to convert, or Polygon USDC to deposit) above the zap floor.
+ *
+ * - `eligible`  — deposited >= minimum; the card can be unlocked.
+ * - `convert`   — still short, and there is value to convert/deposit.
+ * - `add_funds` — still short, and nothing > the floor is left; show the address.
+ */
+export function nextFillAction({
+  depositedUsd,
+  minUsd,
+  hasMovableValue,
+}: {
+  depositedUsd: number
+  minUsd: number
+  hasMovableValue: boolean
+}): FillAction {
+  if (depositedUsd >= minUsd) return 'eligible'
+  return hasMovableValue ? 'convert' : 'add_funds'
+}
+
 // --- Selection persistence -------------------------------------------------
 // The tier is picked in the marketing issue flow (before wallet connect) and
 // read back in the dashboard request modal (after connect + redirect). Bridge

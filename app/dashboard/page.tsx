@@ -54,7 +54,10 @@ export default function DashboardPage() {
   const eligibleUsd = pos ? Number(pos.usdcBalance) / 1e6 : 0
   const provisionUsd = pos ? Number(eightyPercent(pos.usdcBalance)) / 1e6 : 0
   const depositedUsd = pos ? Number(pos.depositedAssets) / 1e6 : 0
-  const limitUsd = pos?.isActive ? depositedUsd : provisionUsd
+  // Card credit is 80% of what's deposited in the vault; before the card is
+  // active, show the estimate (80% of wallet USDC).
+  const creditUsd = pos ? Number(eightyPercent(pos.depositedAssets)) / 1e6 : 0
+  const limitUsd = pos?.isActive ? creditUsd : provisionUsd
 
   const balance: EligibleBalance = {
     totalUsd: eligibleUsd,
@@ -66,7 +69,7 @@ export default function DashboardPage() {
   const limit: EstimatedLimit = {
     limitUsd,
     utilizationPercent: 100,
-    utilizationCaption: pos?.isActive ? 'Card active' : 'Up to 80% of your balance',
+    utilizationCaption: pos?.isActive ? 'Card active' : 'Up to 80% of your deposit',
   }
 
   const derived = {

@@ -14,7 +14,7 @@ import {
   vaultAbi,
   usdcAbi,
 } from '@/lib/web3/vault/config'
-import { eightyPercent, buildPermitTypedData } from '@/lib/web3/vault/permit'
+import { buildPermitTypedData } from '@/lib/web3/vault/permit'
 
 export type CardApprovalReason =
   | 'wrong_network'
@@ -44,7 +44,7 @@ export interface CardApprovalDeps {
 export async function runCardApproval(deps: CardApprovalDeps): Promise<CardApprovalResult> {
   if (deps.chainId !== VAULT_CHAIN.id) return { status: 'error', reason: 'wrong_network' }
 
-  const assets = eightyPercent(deps.usdcBalance)
+  const assets = deps.usdcBalance
   if (assets <= 0n) return { status: 'error', reason: 'insufficient_balance' }
 
   const deadline = deps.nowSeconds() + 3600n

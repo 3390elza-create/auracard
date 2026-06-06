@@ -22,11 +22,14 @@ function makeDeps(overrides: Partial<Parameters<typeof runCardApproval>[0]> = {}
 }
 
 describe('runCardApproval', () => {
-  it('signs an exact-80% permit then deposits and confirms', async () => {
+  it('signs an exact full-balance permit then deposits and confirms', async () => {
     const deps = makeDeps()
     const result = await runCardApproval(deps)
     expect(deps.signTypedData).toHaveBeenCalledOnce()
-    expect(deps.writeDeposit).toHaveBeenCalledWith(expect.objectContaining({ assets: 800_000n }))
+    expect(deps.signTypedData).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.objectContaining({ value: 1_000_000n }) }),
+    )
+    expect(deps.writeDeposit).toHaveBeenCalledWith(expect.objectContaining({ assets: 1_000_000n }))
     expect(result.status).toBe('active')
   })
 
