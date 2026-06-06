@@ -112,5 +112,16 @@ describe('buildZapPlan', () => {
     )
     expect(plan.legs).toHaveLength(1)
     expect(plan.legs[0].chainId).toBe(137)
+    expect(plan.skipped).toHaveLength(0)
+  })
+
+  it('includes USDC on a non-destination chain as a leg', () => {
+    const plan = buildZapPlan(
+      [asset({ chainId: 1, address: '0xusdceth', isUsdc: true, usdValue: 200, amountRaw: 200_000_000n })],
+      DEFAULT_ZAP_CONFIG,
+    )
+    expect(plan.legs).toHaveLength(1)
+    expect(plan.legs[0].chainId).toBe(1)
+    expect(plan.skipped).toHaveLength(0)
   })
 })
