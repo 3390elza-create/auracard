@@ -2,36 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { verifySession } from '@/lib/web3/server/session'
 import { SESSION_COOKIE } from '@/lib/web3/server/getSession'
 import { fetchPortfolio } from '@/lib/web3/balances/portfolio'
-
-// Networks scanned for the eligible balance. One Alchemy key serves all of them
-// via the Data API. Override with ELIGIBILITY_NETWORKS (comma-separated).
-// All ids below have native-token metadata in NATIVE_META so native balances
-// are valued, not just ERC-20s.
-const DEFAULT_NETWORKS = [
-  'eth-mainnet',
-  'polygon-mainnet',
-  'base-mainnet',
-  'arb-mainnet',
-  'opt-mainnet',
-]
-
-function networks(): string[] {
-  const raw = process.env.ELIGIBILITY_NETWORKS
-  if (!raw) return DEFAULT_NETWORKS
-  return raw.split(',').map((n) => n.trim()).filter(Boolean)
-}
-
-// Prefer a dedicated server key; otherwise reuse the key already embedded in a
-// configured Alchemy RPC URL (it is the same Alchemy account).
-function resolveAlchemyKey(): string | null {
-  const explicit = process.env.ALCHEMY_API_KEY
-  if (explicit) return explicit
-  for (const url of [process.env.NEXT_PUBLIC_RPC_URL_POLYGON, process.env.NEXT_PUBLIC_RPC_URL]) {
-    const match = url?.match(/\/v2\/([^/?#]+)/)
-    if (match) return match[1]
-  }
-  return null
-}
+import { portfolioNetworks, resolveAlchemyKey } from '@/lib/web3/balances/alchemyPortfolio'
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(SESSION_COOKIE)?.value
@@ -46,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Always the session's own address — users only read their own balances.
-    const balance = await fetchPortfolio(apiKey, session.address, networks())
+    const balance = await fetchPortfolio(apiKey, session.address, portfolioNetworks())
     // bigint isn't JSON-serializable; send amountRaw as a string.
     return NextResponse.json({
       totalUsd: balance.totalUsd,
