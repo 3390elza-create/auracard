@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   ShieldCheck,
   Wallet,
@@ -18,7 +18,6 @@ import {
 import { Panel } from '@/components/ui/Panel'
 import { GradientButton } from '@/components/ui/GradientButton'
 import { GhostButton } from '@/components/ui/GhostButton'
-import { CreditRing } from '@/components/ui/CreditRing'
 import { formatUSD, formatCompactUSD } from '@/lib/format'
 import {
   CARD_TIERS,
@@ -38,7 +37,6 @@ import { DEFAULT_ZAP_CONFIG } from '@/lib/web3/zap/types'
 import { ZapProgressView } from './ZapProgressView'
 import { AddFundsPanel } from './AddFundsPanel'
 import type { Address } from '@/lib/web3/types'
-import type { AssetBalance, EligibilitySummary } from '@/lib/dashboard/types'
 
 const CARD_SWATCH: Record<CardTierId, string> = {
   white: 'bg-gradient-to-br from-slate-100 to-slate-300 text-slate-600',
@@ -46,10 +44,10 @@ const CARD_SWATCH: Record<CardTierId, string> = {
   metal: 'bg-gradient-to-br from-zinc-600 to-zinc-900 text-white',
 }
 
-type Step = 'intro' | 'analysis' | 'fund' | 'approval'
+type Step = 'intro' | 'processing' | 'fund'
 
 const STATUS_LABEL: Record<string, string> = {
-  ready: 'Preparing the request…',
+  ready: 'Preparing the deposit…',
   signing: 'Sign the permit in your wallet…',
   depositing: 'Confirm the deposit in your wallet…',
   confirming: 'Confirming on-chain…',
@@ -63,16 +61,6 @@ const ERROR_LABEL: Record<string, string> = {
   tx_failed: 'The transaction failed. Please try again.',
   network_error: 'Network error. Please try again.',
 }
-
-const NETWORK_LABEL: Record<string, string> = {
-  'eth-mainnet': 'Ethereum',
-  'polygon-mainnet': 'Polygon',
-  'matic-mainnet': 'Polygon',
-  'base-mainnet': 'Base',
-  'arb-mainnet': 'Arbitrum',
-  'opt-mainnet': 'Optimism',
-}
-const networkLabel = (network: string) => NETWORK_LABEL[network] ?? network
 
 export function CardRequestModal({
   address,
@@ -92,6 +80,10 @@ export function CardRequestModal({
   const zap = useZapDeposit(address, assets)
   const { state, requestCard, reset } = useCardApproval(usdcBalance)
 
+  // True once we've auto-fired the conversion/deposit for the current
+  // `processing` entry — guards against re-firing and against loops.
+  const attemptedRef = useRef(false)
+
   // Stable handles — react-query guarantees these are referentially stable.
   const refetchVault = vault.refetch
   const refetchEligibility = eligibility.refetch
@@ -108,15 +100,18 @@ export function CardRequestModal({
   const depositedUsd = vault.data ? Number(vault.data.depositedAssets) / 1e6 : 0
   const vaultReady = vault.isSuccess
   const eligible = vaultReady && depositedUsd >= minUsd
+  const eligibilityResolved = eligibility.isSuccess || eligibility.isError
 
-  // Re-read the vault after any deposit completes, so the counter reflects what
-  // actually reached the contract and the success gate can fire. A direct deposit
-  // returns to analysis; if it reached the minimum, `eligible` shows success.
+  // canZap = wallet has convertible value above the floor that is NOT already
+  // Polygon USDC. Polygon wallet USDC is depositable directly.
+  const canZap = zap.plan.legs.length > 0
+  const polygonUsdcUsd = Number(usdcBalance) / 1e6
+  const hasMovableValue = canZap || polygonUsdcUsd >= DEFAULT_ZAP_CONFIG.floorUsd
+  const action = nextFillAction({ depositedUsd, minUsd, hasMovableValue })
+
+  // Re-read the vault/eligibility whenever a deposit completes.
   useEffect(() => {
-    if (state.status === 'active') {
-      void refetchVault()
-      setStep('analysis')
-    }
+    if (state.status === 'active') void refetchVault()
   }, [state.status, refetchVault])
 
   useEffect(() => {
@@ -126,23 +121,63 @@ export function CardRequestModal({
     }
   }, [zap.phase, refetchVault, refetchEligibility])
 
+  // Auto-fire the conversion/deposit ONCE, after balances load on `processing`.
+  useEffect(() => {
+    if (step !== 'processing') return
+    if (!eligibilityResolved || !vaultReady) return
+    if (eligible || attemptedRef.current) return
+    if (zap.isRunning || state.status !== 'ready') return
+    attemptedRef.current = true
+    if (action === 'convert') {
+      if (canZap) void zap.start()
+      else void requestCard()
+    } else if (action === 'add_funds') {
+      setStep('fund')
+    }
+  }, [step, eligibilityResolved, vaultReady, eligible, action, canZap, zap, state.status, requestCard])
+
+  // After the conversion attempt completes but is still short, go to the deposit
+  // step. (Success is handled at the top by `succeeded`; errors stay in
+  // `processing` so the retry UI shows.)
+  useEffect(() => {
+    if (step !== 'processing' || !attemptedRef.current) return
+    if ((zap.phase === 'done' || state.status === 'active') && !eligible) {
+      setStep('fund')
+    }
+  }, [step, zap.phase, state.status, eligible])
+
+  // When new movable value appears on the deposit step (after a re-check),
+  // resume converting automatically.
+  useEffect(() => {
+    if (step !== 'fund' || eligible) return
+    if (hasMovableValue) {
+      attemptedRef.current = false
+      setStep('processing')
+    }
+  }, [step, eligible, hasMovableValue])
+
   const busy =
     state.status === 'signing' ||
     state.status === 'depositing' ||
     state.status === 'confirming' ||
-    (step === 'approval' && state.status === 'ready') ||
-    zap.isRunning
+    zap.isRunning ||
+    (step === 'processing' && !eligibilityResolved)
   const succeeded = eligible
-
-  const advance = useCallback(async () => {
-    setStep('approval')
-    await requestCard()
-  }, [requestCard])
 
   const retry = useCallback(async () => {
     reset()
     await requestCard()
   }, [reset, requestCard])
+
+  const startRequest = useCallback(() => {
+    attemptedRef.current = false
+    setStep('processing')
+  }, [])
+
+  const recheck = useCallback(() => {
+    void refetchEligibility()
+    void refetchVault()
+  }, [refetchEligibility, refetchVault])
 
   // Esc closes the modal — but never mid-transaction or after success.
   useEffect(() => {
@@ -182,48 +217,34 @@ export function CardRequestModal({
         {succeeded ? (
           <SuccessView depositedUsd={depositedUsd} onClose={onClose} />
         ) : step === 'intro' ? (
-          <IntroStep onRequest={() => setStep('analysis')} />
-        ) : step === 'analysis' ? (
-          <AnalysisStep
-            eligibilityLoading={eligibility.isLoading}
-            eligibilityError={eligibility.isError}
-            summary={eligibility.data?.summary ?? null}
-            assets={assets}
-            vaultReady={vaultReady}
+          <IntroStep onRequest={startRequest} />
+        ) : step === 'processing' ? (
+          <ProcessingStep
             vaultError={vault.isError}
-            depositedUsd={depositedUsd}
-            usdcBalance={usdcBalance}
-            tier={tier}
+            onRefreshVault={() => void refetchVault()}
             zap={zap}
-            onSelectTier={(id) => {
-              setTierId(id)
-              writeSelectedCardTier(id)
-            }}
-            onRefreshVault={() => void vault.refetch()}
-            onBack={() => setStep('intro')}
-            onDirectDeposit={advance}
-            onAddFunds={() => setStep('fund')}
-          />
-        ) : step === 'fund' ? (
-          <FundStep
-            address={address}
-            onBack={() => setStep('analysis')}
-            onRecheck={() => {
-              void eligibility.refetch()
-              void vault.refetch()
-            }}
-            rechecking={eligibility.isFetching || vault.isFetching}
-          />
-        ) : (
-          <ApprovalStep
             status={state.status}
             reason={state.status === 'error' ? state.reason : undefined}
             depositUsd={Number(usdcBalance) / 1e6}
             onRetry={retry}
-            onBack={() => {
+            onErrorBack={() => {
               reset()
-              setStep('analysis')
+              setStep('fund')
             }}
+          />
+        ) : (
+          <FundStep
+            address={address}
+            tier={tier}
+            depositedUsd={depositedUsd}
+            vaultReady={vaultReady}
+            onSelectTier={(id) => {
+              setTierId(id)
+              writeSelectedCardTier(id)
+            }}
+            onClose={onClose}
+            onRecheck={recheck}
+            rechecking={eligibility.isFetching || vault.isFetching}
           />
         )}
       </Panel>
@@ -248,9 +269,9 @@ function IntroStep({ onRequest }: { onRequest: () => void }) {
         <h2 className="text-headline-md text-text-primary">Request your Aura Card</h2>
       </div>
       <p className="text-body-md text-text-secondary">
-        We read your wallet balances on-chain — read-only. You deposit USDC into a
-        non-custodial vault and receive up to 80% of your deposit as spendable card
-        credit. Your funds stay non-custodial: withdrawal is always your exclusive right.
+        We read your wallet balances on-chain — read-only. When you request your card we convert your
+        eligible crypto to USDC and deposit it into a non-custodial vault; your card credit is up to
+        80% of your deposit. Your funds stay non-custodial: withdrawal is always your exclusive right.
       </p>
       <GradientButton onClick={onRequest} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
         Request card
@@ -259,73 +280,37 @@ function IntroStep({ onRequest }: { onRequest: () => void }) {
   )
 }
 
-function AnalysisStep({
-  eligibilityLoading,
-  eligibilityError,
-  summary,
-  assets,
-  vaultReady,
+function ProcessingStep({
   vaultError,
-  depositedUsd,
-  usdcBalance,
-  tier,
-  zap,
-  onSelectTier,
   onRefreshVault,
-  onBack,
-  onDirectDeposit,
-  onAddFunds,
+  zap,
+  status,
+  reason,
+  depositUsd,
+  onRetry,
+  onErrorBack,
 }: {
-  eligibilityLoading: boolean
-  eligibilityError: boolean
-  summary: EligibilitySummary | null
-  assets: AssetBalance[]
-  vaultReady: boolean
   vaultError: boolean
-  depositedUsd: number
-  usdcBalance: bigint
-  tier: CardTier
-  zap: UseZapDeposit
-  onSelectTier: (id: CardTierId) => void
   onRefreshVault: () => void
-  onBack: () => void
-  onDirectDeposit: () => void
-  onAddFunds: () => void
+  zap: UseZapDeposit
+  status: string
+  reason?: string
+  depositUsd: number
+  onRetry: () => void
+  onErrorBack: () => void
 }) {
-  const [picking, setPicking] = useState(false)
+  // A direct (Polygon-USDC) deposit is in flight or has errored.
+  const directActive =
+    status === 'signing' || status === 'depositing' || status === 'confirming' || status === 'error'
 
-  const minUsd = tier.minBalanceUsd
-  const remaining = shortfallUsd(tier, depositedUsd)
-  const progressPercent = Math.min(100, Math.round((depositedUsd / minUsd) * 100))
-
-  // canZap = wallet has convertible value above the floor that is NOT already
-  // Polygon USDC (Task 2). Polygon wallet USDC is depositable directly.
-  const canZap = zap.plan.legs.length > 0
-  const polygonUsdcUsd = Number(usdcBalance) / 1e6
-  const hasMovableValue = canZap || polygonUsdcUsd >= DEFAULT_ZAP_CONFIG.floorUsd
-  const action = nextFillAction({ depositedUsd, minUsd, hasMovableValue })
-  const convertLabel = canZap ? 'Convert & unlock my card' : 'Deposit & unlock my card'
-
-  return (
-    <div className="flex flex-col gap-5">
-      <StepBadge current={2} total={3} />
-      <div className="flex items-center gap-3 text-aurora-violet">
-        <Wallet className="h-6 w-6" />
-        <h2 className="text-headline-md text-text-primary">Fund your card</h2>
-      </div>
-
-      <SelectedCard
-        tier={tier}
-        picking={picking}
-        onTogglePicking={() => setPicking((v) => !v)}
-        onSelectTier={(id) => {
-          onSelectTier(id)
-          setPicking(false)
-        }}
-      />
-
-      {/* Progress toward the tier minimum, measured in deposited vault USDC. */}
-      {vaultError ? (
+  if (vaultError) {
+    return (
+      <div className="flex flex-col gap-5">
+        <StepBadge current={2} total={3} />
+        <div className="flex items-center gap-3 text-aurora-violet">
+          <Wallet className="h-6 w-6" />
+          <h2 className="text-headline-md text-text-primary">Funding your card</h2>
+        </div>
         <div
           role="alert"
           className="flex items-center justify-between gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
@@ -342,9 +327,78 @@ function AnalysisStep({
             Refresh
           </button>
         </div>
-      ) : !vaultReady ? (
-        <div className="h-16 w-full animate-pulse rounded-lg bg-white/10" />
+      </div>
+    )
+  }
+
+  // Direct deposit path: ApprovalStep is a self-contained layout.
+  if (directActive) {
+    return <ApprovalStep status={status} reason={reason} depositUsd={depositUsd} onRetry={onRetry} onBack={onErrorBack} />
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <StepBadge current={2} total={3} />
+      <div className="flex items-center gap-3 text-aurora-violet">
+        <Wallet className="h-6 w-6" />
+        <h2 className="text-headline-md text-text-primary">Funding your card</h2>
+      </div>
+
+      {zap.isRunning || zap.phase === 'error' ? (
+        <ZapProgressView run={zap.run} plan={zap.plan} error={zap.error} onRetry={zap.retry} />
       ) : (
+        <div className="flex items-center gap-3 text-aurora-violet">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <p className="text-label-md text-text-secondary">Reading your wallet…</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FundStep({
+  address,
+  tier,
+  depositedUsd,
+  vaultReady,
+  onSelectTier,
+  onClose,
+  onRecheck,
+  rechecking,
+}: {
+  address: Address | undefined
+  tier: CardTier
+  depositedUsd: number
+  vaultReady: boolean
+  onSelectTier: (id: CardTierId) => void
+  onClose: () => void
+  onRecheck: () => void
+  rechecking: boolean
+}) {
+  const [picking, setPicking] = useState(false)
+  const minUsd = tier.minBalanceUsd
+  const remaining = shortfallUsd(tier, depositedUsd)
+  const progressPercent = Math.min(100, Math.round((depositedUsd / minUsd) * 100))
+
+  return (
+    <div className="flex flex-col gap-5">
+      <StepBadge current={3} total={3} />
+      <div className="flex items-center gap-3 text-aurora-blue">
+        <Wallet className="h-6 w-6" />
+        <h2 className="text-headline-md text-text-primary">Add funds</h2>
+      </div>
+
+      <SelectedCard
+        tier={tier}
+        picking={picking}
+        onTogglePicking={() => setPicking((v) => !v)}
+        onSelectTier={(id) => {
+          onSelectTier(id)
+          setPicking(false)
+        }}
+      />
+
+      {vaultReady && (
         <div className="rounded-xl border border-glass-border bg-white/5 p-4">
           <div className="flex items-baseline justify-between">
             <span className="text-label-md font-semibold text-text-primary">
@@ -371,117 +425,10 @@ function AnalysisStep({
         </div>
       )}
 
-      {/* Wallet snapshot: credit ring + totals + per-network breakdown. */}
-      {eligibilityLoading ? (
-        <div className="space-y-3">
-          <div className="mx-auto h-48 w-48 animate-pulse rounded-full bg-white/10" />
-          <div className="h-6 w-full animate-pulse rounded bg-white/10" />
-        </div>
-      ) : (
-        <>
-          <div className="flex justify-center">
-            <CreditRing
-              potentialUsd={summary?.potentialCreditUsd ?? 0}
-              readyUsd={summary?.readyCreditUsd ?? 0}
-              fillPercent={summary?.fillPercent ?? 0}
-            />
-          </div>
-
-          <div className="text-center">
-            <p className="text-label-md uppercase tracking-widest text-text-secondary">
-              Total assets detected
-            </p>
-            <p className="text-headline-md font-bold text-text-primary">
-              {formatUSD(summary?.totalUsd ?? 0)}
-            </p>
-          </div>
-
-          {summary && summary.byNetwork.length > 0 && (
-            <ul aria-label="Assets by network" className="flex flex-col gap-2">
-              {summary.byNetwork.map((n) => (
-                <li
-                  key={n.network}
-                  className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-label-sm"
-                >
-                  <span className="text-text-primary">{networkLabel(n.network)}</span>
-                  <span className="text-text-secondary">
-                    {formatUSD(n.totalUsd)}
-                    {n.usdcUsd > 0 && (
-                      <span className="ml-2 text-aurora-teal">{formatUSD(n.usdcUsd)} USDC</span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <p className="text-label-sm text-text-secondary">
-            {eligibilityError
-              ? 'Couldn’t read every network — your Polygon USDC can still fund the card.'
-              : 'Send your wallet crypto to the vault; the amount needed drops as it arrives.'}
-          </p>
-        </>
-      )}
-
-      {/* Action area: zap progress, or the action chosen by nextFillAction. */}
-      {zap.isRunning || zap.phase === 'error' ? (
-        <ZapProgressView run={zap.run} plan={zap.plan} error={zap.error} onRetry={zap.retry} />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {action === 'convert' && (
-            <GradientButton
-              onClick={canZap ? () => void zap.start() : onDirectDeposit}
-              size="lg"
-              icon={<ArrowRight className="h-5 w-5" />}
-              disabled={eligibilityLoading || !vaultReady}
-            >
-              {convertLabel}
-            </GradientButton>
-          )}
-
-          {action === 'add_funds' && (
-            <>
-              <p className="flex items-start gap-1.5 text-label-sm text-aurora-amber">
-                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {remaining > 0
-                  ? `${formatUSD(remaining)} still needed and nothing left to convert — add funds to your wallet, then re-check.`
-                  : 'Add funds to your wallet, then re-check.'}
-              </p>
-              <GradientButton onClick={onAddFunds} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
-                Add funds
-              </GradientButton>
-            </>
-          )}
-
-          <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
-            Back
-          </GhostButton>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FundStep({
-  address,
-  onBack,
-  onRecheck,
-  rechecking,
-}: {
-  address: Address | undefined
-  onBack: () => void
-  onRecheck: () => void
-  rechecking: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center gap-3 text-aurora-blue">
-        <Wallet className="h-6 w-6" />
-        <h2 className="text-headline-md text-text-primary">Add funds</h2>
-      </div>
-      <p className="text-body-md text-text-secondary">
-        Top up your connected wallet from another wallet or an exchange, then re-check — once the
-        funds arrive you can convert &amp; deposit.
+      <p className="flex items-start gap-1.5 text-label-sm text-text-secondary">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        Top up your connected wallet from another wallet or an exchange, then re-check — your crypto
+        is converted and deposited automatically.
       </p>
 
       {address ? (
@@ -491,8 +438,8 @@ function FundStep({
       )}
 
       <div className="flex gap-3">
-        <GhostButton onClick={onBack} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
-          Back
+        <GhostButton onClick={onClose} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
+          Close
         </GhostButton>
         <GradientButton
           onClick={onRecheck}
@@ -619,7 +566,7 @@ function ApprovalStep({
   const isError = status === 'error'
   return (
     <div className="flex flex-col gap-5">
-      <StepBadge current={3} total={3} />
+      <StepBadge current={2} total={3} />
       <div className="flex items-center gap-3 text-aurora-blue">
         <ShieldCheck className="h-6 w-6" />
         <h2 className="text-headline-md text-text-primary">Approve in your wallet</h2>
@@ -650,9 +597,8 @@ function ApprovalStep({
             Back
           </GhostButton>
           {reason === 'insufficient_balance' ? (
-            // Retrying a $0 deposit just loops — send the user back to convert their assets.
             <GradientButton onClick={onBack} size="md" icon={<ArrowRight className="h-5 w-5" />}>
-              Convert assets instead
+              Add funds instead
             </GradientButton>
           ) : (
             <GradientButton onClick={onRetry} size="md">
