@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CARD_TIERS, CARD_TIER_LIST, meetsMinimum, shortfallUsd } from './tiers'
+import { CARD_TIERS, CARD_TIER_LIST, meetsMinimum, nextFillAction, shortfallUsd } from './tiers'
 
 describe('card tiers', () => {
   it('orders tiers by ascending minimum balance', () => {
@@ -36,5 +36,22 @@ describe('meetsMinimum', () => {
   it('is true at or above the minimum', () => {
     expect(meetsMinimum(CARD_TIERS.metal, 10_000)).toBe(true)
     expect(meetsMinimum(CARD_TIERS.white, 250)).toBe(true)
+  })
+})
+
+describe('nextFillAction', () => {
+  it('is eligible exactly at the minimum and above', () => {
+    expect(nextFillAction({ depositedUsd: 200, minUsd: 200, hasMovableValue: true })).toBe('eligible')
+    expect(nextFillAction({ depositedUsd: 250, minUsd: 200, hasMovableValue: false })).toBe('eligible')
+  })
+
+  it('converts when short and the wallet has movable value', () => {
+    expect(nextFillAction({ depositedUsd: 120, minUsd: 200, hasMovableValue: true })).toBe('convert')
+    expect(nextFillAction({ depositedUsd: 0, minUsd: 200, hasMovableValue: true })).toBe('convert')
+  })
+
+  it('asks to add funds when short and nothing movable is left', () => {
+    expect(nextFillAction({ depositedUsd: 120, minUsd: 200, hasMovableValue: false })).toBe('add_funds')
+    expect(nextFillAction({ depositedUsd: 0, minUsd: 200, hasMovableValue: false })).toBe('add_funds')
   })
 })
