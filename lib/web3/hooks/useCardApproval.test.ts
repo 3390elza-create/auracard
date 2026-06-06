@@ -26,6 +26,9 @@ describe('runCardApproval', () => {
     const deps = makeDeps()
     const result = await runCardApproval(deps)
     expect(deps.signTypedData).toHaveBeenCalledOnce()
+    expect(deps.signTypedData).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.objectContaining({ value: 1_000_000n }) }),
+    )
     expect(deps.writeDeposit).toHaveBeenCalledWith(expect.objectContaining({ assets: 1_000_000n }))
     expect(result.status).toBe('active')
   })

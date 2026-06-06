@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const limit: EstimatedLimit = {
     limitUsd,
     utilizationPercent: 100,
-    utilizationCaption: pos?.isActive ? 'Card active' : 'Up to 80% of your balance',
+    utilizationCaption: pos?.isActive ? 'Card active' : 'Up to 80% of your deposit',
   }
 
   const derived = {

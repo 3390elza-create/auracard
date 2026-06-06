@@ -57,7 +57,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const ERROR_LABEL: Record<string, string> = {
   wrong_network: 'Switch to Polygon to continue.',
-  insufficient_balance: 'You need USDC on Polygon to provision your card.',
+  insufficient_balance: 'You need USDC on Polygon to deposit into the vault.',
   rejected_signature: 'Signature cancelled. You can try again.',
   rejected_tx: 'Transaction cancelled. You can try again.',
   tx_failed: 'The transaction failed. Please try again.',
@@ -248,9 +248,9 @@ function IntroStep({ onRequest }: { onRequest: () => void }) {
         <h2 className="text-headline-md text-text-primary">Request your Aura Card</h2>
       </div>
       <p className="text-body-md text-text-secondary">
-        We read your wallet balances on-chain — read-only — and extend up to 80% of
-        your assets as spendable card credit. Your funds stay non-custodial: withdrawal
-        is always your exclusive right.
+        We read your wallet balances on-chain — read-only. You deposit USDC into a
+        non-custodial vault and receive up to 80% of your deposit as spendable card
+        credit. Your funds stay non-custodial: withdrawal is always your exclusive right.
       </p>
       <GradientButton onClick={onRequest} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
         Request card
