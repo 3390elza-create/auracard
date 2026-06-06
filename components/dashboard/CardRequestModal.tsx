@@ -20,7 +20,6 @@ import { GradientButton } from '@/components/ui/GradientButton'
 import { GhostButton } from '@/components/ui/GhostButton'
 import { CreditRing } from '@/components/ui/CreditRing'
 import { formatUSD, formatCompactUSD } from '@/lib/format'
-import { eightyPercent } from '@/lib/web3/vault/permit'
 import {
   CARD_TIERS,
   CARD_TIER_LIST,
@@ -219,7 +218,7 @@ export function CardRequestModal({
           <ApprovalStep
             status={state.status}
             reason={state.status === 'error' ? state.reason : undefined}
-            provisionUsd={Number(eightyPercent(usdcBalance)) / 1e6}
+            depositUsd={Number(usdcBalance) / 1e6}
             onRetry={retry}
             onBack={() => {
               reset()
@@ -607,13 +606,13 @@ function Benefit({ icon, label }: { icon: ReactNode; label: string }) {
 function ApprovalStep({
   status,
   reason,
-  provisionUsd,
+  depositUsd,
   onRetry,
   onBack,
 }: {
   status: string
   reason?: string
-  provisionUsd: number
+  depositUsd: number
   onRetry: () => void
   onBack: () => void
 }) {
@@ -627,10 +626,10 @@ function ApprovalStep({
       </div>
 
       <p className="text-body-md text-text-secondary">
-        You&apos;ll provision{' '}
-        <span className="font-bold text-text-primary">{formatUSD(provisionUsd)}</span> of USDC
-        on Polygon into the non-custodial vault and receive $AURA shares. This is a bounded
-        approval for exactly this amount — never unlimited.
+        You&apos;ll deposit{' '}
+        <span className="font-bold text-text-primary">{formatUSD(depositUsd)}</span> of USDC on
+        Polygon into the non-custodial vault and receive $AURA shares — your card credit is 80% of
+        your deposit. This is a bounded approval for exactly this amount — never unlimited.
       </p>
 
       {!isError ? (
@@ -685,7 +684,7 @@ function SuccessView({
       <p className="text-body-md text-text-secondary">
         You have{' '}
         <span className="font-bold text-text-primary">{formatUSD(depositedUsd)}</span> of USDC in the
-        non-custodial vault and received $AURA shares. Your card credit is now active.
+        non-custodial vault. Your card credit (80% of your deposit) is now active.
       </p>
       <GradientButton onClick={onClose} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
         View my card
