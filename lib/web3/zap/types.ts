@@ -61,10 +61,16 @@ export interface ZapPlan {
 
 export interface ZapPlanConfig {
   floorUsd: number // ignore tokens whose convertible value is below this
-  nativeReserveUsd: number // keep this much native value per chain for gas
+  nativeReserveUsdByChain: Record<ZapChainId, number> // native value kept for gas, per chain
 }
 
 export const DEFAULT_ZAP_CONFIG: ZapPlanConfig = {
-  floorUsd: 5,
-  nativeReserveUsd: 3,
+  floorUsd: 1,
+  nativeReserveUsdByChain: {
+    1: 8, // Ethereum mainnet — gas is expensive
+    10: 0.5, // Optimism
+    137: 0.5, // Polygon
+    8453: 0.5, // Base
+    42161: 0.5, // Arbitrum
+  },
 }

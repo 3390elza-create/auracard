@@ -10,6 +10,7 @@ interface CommonProps {
   icon?: ReactNode
   iconPosition?: IconPosition
   className?: string
+  disabled?: boolean
 }
 
 type GhostButtonProps =
@@ -27,9 +28,10 @@ export function GhostButton({
   icon,
   iconPosition = 'right',
   className = '',
+  disabled = false,
   ...rest
 }: GhostButtonProps) {
-  const base = `inline-flex items-center justify-center gap-2 rounded-xl bg-glass-fill border border-glass-border font-bold text-text-primary transition-colors hover:bg-white/10 active:scale-[0.98] ${sizeClasses[size]} ${className}`
+  const base = `inline-flex items-center justify-center gap-2 rounded-xl bg-glass-fill border border-glass-border font-bold text-text-primary transition-colors hover:bg-white/10 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none ${sizeClasses[size]} ${className}`
   const content = (
     <>
       {icon && iconPosition === 'left' && icon}
@@ -42,7 +44,7 @@ export function GhostButton({
   }
   const { onClick, type = 'button' } = rest as { onClick?: () => void; type?: 'button' | 'submit' }
   return (
-    <button type={type} onClick={onClick} className={base}>
+    <button type={type} onClick={onClick} disabled={disabled} className={base}>
       {content}
     </button>
   )
