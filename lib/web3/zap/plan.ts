@@ -73,11 +73,12 @@ export function buildZapPlan(
     let amountRaw: bigint
     let usdValue: number
     if (token.isNative) {
-      const reserveRaw = nativeReserveRaw(token.amountRaw, token.usdValue, config.nativeReserveUsd)
+      const reserveUsd = config.nativeReserveUsdByChain[chainId] ?? 0.5
+      const reserveRaw = nativeReserveRaw(token.amountRaw, token.usdValue, reserveUsd)
       amountRaw = token.amountRaw - reserveRaw
       // USD of the converted remainder = holding value minus the reserved gas
       // value. (Differs from amountRaw only by sub-cent integer-division rounding.)
-      usdValue = token.usdValue - config.nativeReserveUsd
+      usdValue = token.usdValue - reserveUsd
       if (amountRaw <= 0n || usdValue < config.floorUsd) {
         skipped.push({ token, reason: 'native_below_reserve' })
         continue

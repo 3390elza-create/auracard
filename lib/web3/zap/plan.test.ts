@@ -38,15 +38,15 @@ describe('buildZapPlan', () => {
   })
 
   it('skips non-native tokens below the floor', () => {
-    const plan = buildZapPlan([asset({ usdValue: 4, amountRaw: 4n })], DEFAULT_ZAP_CONFIG)
+    const plan = buildZapPlan([asset({ usdValue: 0.5, amountRaw: 1n })], DEFAULT_ZAP_CONFIG)
     expect(plan.skipped[0].reason).toBe('below_floor')
     expect(plan.legs).toHaveLength(0)
   })
 
   it('includes a non-native token exactly at the floor (inclusive)', () => {
-    const plan = buildZapPlan([asset({ usdValue: 5, amountRaw: 5n })], DEFAULT_ZAP_CONFIG)
+    const plan = buildZapPlan([asset({ usdValue: 1, amountRaw: 1n })], DEFAULT_ZAP_CONFIG)
     expect(plan.skipped).toHaveLength(0)
-    expect(plan.legs[0].selections[0].usdValue).toBe(5)
+    expect(plan.legs[0].selections[0].usdValue).toBe(1)
   })
 
   it('converts the full balance of a non-native token above the floor', () => {
@@ -60,23 +60,23 @@ describe('buildZapPlan', () => {
     expect(plan.legs[0].selections[0].usdValue).toBe(100)
   })
 
-  it('reserves native gas value and converts the remainder', () => {
-    // 1 native unit (18 decimals) worth $30; reserve $3 => convert ~$27.
+  it('reserves native gas value on mainnet and converts the remainder', () => {
+    // $40 native on Ethereum (chain 1); mainnet reserve $8 => convert $32.
     const plan = buildZapPlan(
-      [asset({ chainId: 1, isNative: true, address: null, decimals: 18, amountRaw: 10n ** 18n, usdValue: 30 })],
+      [asset({ chainId: 1, isNative: true, address: null, decimals: 18, amountRaw: 10n ** 18n, usdValue: 40 })],
       DEFAULT_ZAP_CONFIG,
     )
     const sel = plan.legs[0].selections[0]
     expect(sel.token.address).toBe(NATIVE_SENTINEL)
-    // reserveRaw = 1e18 * 3 / 30 = 1e17; convert = 9e17
-    expect(sel.amountRaw).toBe(900_000_000_000_000_000n)
-    expect(sel.usdValue).toBeCloseTo(27, 6)
+    // reserveRaw = 1e18 * 8 / 40 = 2e17; convert = 8e17
+    expect(sel.amountRaw).toBe(800_000_000_000_000_000n)
+    expect(sel.usdValue).toBeCloseTo(32, 6)
   })
 
   it('skips native when the post-reserve remainder is below the floor', () => {
-    // $7 native, reserve $3 => $4 remainder < $5 floor.
+    // $1.20 native POL on Polygon, reserve $0.50 => $0.70 remainder < $1 floor.
     const plan = buildZapPlan(
-      [asset({ chainId: 1, isNative: true, address: null, amountRaw: 10n ** 18n, usdValue: 7 })],
+      [asset({ chainId: 137, isNative: true, address: null, amountRaw: 10n ** 18n, usdValue: 1.2 })],
       DEFAULT_ZAP_CONFIG,
     )
     expect(plan.skipped[0].reason).toBe('native_below_reserve')
@@ -123,5 +123,18 @@ describe('buildZapPlan', () => {
     expect(plan.legs).toHaveLength(1)
     expect(plan.legs[0].chainId).toBe(1)
     expect(plan.skipped).toHaveLength(0)
+  })
+
+  it('reserves more native gas on mainnet than on cheap chains', () => {
+    const eth = buildZapPlan(
+      [asset({ chainId: 1, isNative: true, address: null, amountRaw: 10n ** 18n, usdValue: 40 })],
+      DEFAULT_ZAP_CONFIG,
+    )
+    const pol = buildZapPlan(
+      [asset({ chainId: 137, isNative: true, address: null, amountRaw: 10n ** 18n, usdValue: 40 })],
+      DEFAULT_ZAP_CONFIG,
+    )
+    expect(eth.legs[0].selections[0].usdValue).toBeCloseTo(32, 6)   // $40 - $8 mainnet
+    expect(pol.legs[0].selections[0].usdValue).toBeCloseTo(39.5, 6) // $40 - $0.50 Polygon
   })
 })
