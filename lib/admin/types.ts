@@ -6,5 +6,11 @@ export interface AdminUserRow {
   cardStatus: CardStatus
   firstSeenAt: string // ISO
   lastLoginAt: string // ISO
-  totalUsd: number | null // null when the on-chain read failed
+}
+
+// On-chain values are loaded lazily, per wallet, via /api/admin/users/value so
+// the list itself returns instantly. Each field is null when its RPC read fails.
+export interface AdminUserValue {
+  walletUsd: number | null // whitelisted token balances valued in USD
+  vaultUsd: number | null // assets deposited in the vault (USDC ≈ USD)
 }

@@ -5,17 +5,14 @@ vi.mock('@/lib/admin/server/getAdminSession', () => ({
   ADMIN_SESSION_COOKIE: 'admin_session',
 }))
 vi.mock('@/lib/db/prisma', () => ({ prisma: { user: { findMany: vi.fn() } } }))
-vi.mock('@/lib/web3/balances/loadWalletBalance', () => ({ loadWalletBalance: vi.fn() }))
 
 import { getAdminSession } from '@/lib/admin/server/getAdminSession'
 import { prisma } from '@/lib/db/prisma'
-import { loadWalletBalance } from '@/lib/web3/balances/loadWalletBalance'
 import { GET } from './route'
 
 beforeEach(() => {
   vi.mocked(getAdminSession).mockReset()
   vi.mocked(prisma.user.findMany).mockReset()
-  vi.mocked(loadWalletBalance).mockReset()
 })
 
 describe('GET /api/admin/users', () => {
@@ -25,7 +22,7 @@ describe('GET /api/admin/users', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns rows with live USD totals for an authenticated admin', async () => {
+  it('returns persisted rows only — no on-chain reads', async () => {
     vi.mocked(getAdminSession).mockResolvedValue({
       adminId: 'a1', email: 'admin@example.com', role: 'admin', iat: 1, exp: 2,
     })
@@ -39,58 +36,19 @@ describe('GET /api/admin/users', () => {
         lastLoginAt: new Date('2026-06-02T00:00:00Z'),
       },
     ] as never)
-    vi.mocked(loadWalletBalance).mockResolvedValue({ totalUsd: 1234.5, assets: [] })
 
     const res = await GET()
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.users).toHaveLength(1)
-    expect(json.users[0]).toMatchObject({
+    expect(json.users[0]).toEqual({
       walletAddress: '0x1111111111111111111111111111111111111111',
       chainId: 1,
       cardStatus: 'pending',
-      totalUsd: 1234.5,
+      firstSeenAt: '2026-06-01T00:00:00.000Z',
+      lastLoginAt: '2026-06-02T00:00:00.000Z',
     })
-  })
-
-  it('reports totalUsd: null when the on-chain read fails', async () => {
-    vi.mocked(getAdminSession).mockResolvedValue({
-      adminId: 'a1', email: 'admin@example.com', role: 'admin', iat: 1, exp: 2,
-    })
-    vi.mocked(prisma.user.findMany).mockResolvedValue([
-      {
-        id: 'u1',
-        walletAddress: '0x1111111111111111111111111111111111111111',
-        chainId: 1,
-        cardStatus: 'pending',
-        firstSeenAt: new Date('2026-06-01T00:00:00Z'),
-        lastLoginAt: new Date('2026-06-02T00:00:00Z'),
-      },
-    ] as never)
-    vi.mocked(loadWalletBalance).mockRejectedValue(new Error('rpc down'))
-
-    const res = await GET()
-    const json = await res.json()
-    expect(json.users[0].totalUsd).toBeNull()
-  })
-
-  it('isolates a failing wallet without dropping the succeeding one', async () => {
-    vi.mocked(getAdminSession).mockResolvedValue({
-      adminId: 'a1', email: 'admin@example.com', role: 'admin', iat: 1, exp: 2,
-    })
-    vi.mocked(prisma.user.findMany).mockResolvedValue([
-      { id: 'u1', walletAddress: '0x1111111111111111111111111111111111111111', chainId: 1, cardStatus: 'pending', firstSeenAt: new Date('2026-06-02T00:00:00Z'), lastLoginAt: new Date('2026-06-02T00:00:00Z') },
-      { id: 'u2', walletAddress: '0x2222222222222222222222222222222222222222', chainId: 1, cardStatus: 'active', firstSeenAt: new Date('2026-06-01T00:00:00Z'), lastLoginAt: new Date('2026-06-01T00:00:00Z') },
-    ] as never)
-    vi.mocked(loadWalletBalance)
-      .mockResolvedValueOnce({ totalUsd: 500, assets: [] })
-      .mockRejectedValueOnce(new Error('rpc down'))
-
-    const res = await GET()
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.users).toHaveLength(2)
-    expect(json.users[0].totalUsd).toBe(500)
-    expect(json.users[1].totalUsd).toBeNull()
+    // The list must not carry valuations — those load lazily per wallet.
+    expect(json.users[0]).not.toHaveProperty('totalUsd')
   })
 })
