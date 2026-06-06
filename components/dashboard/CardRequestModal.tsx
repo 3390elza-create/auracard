@@ -146,16 +146,6 @@ export function CardRequestModal({
     }
   }, [step, zap.phase, state.status, eligible])
 
-  // When new movable value appears on the deposit step (after a re-check),
-  // resume converting automatically.
-  useEffect(() => {
-    if (step !== 'fund' || eligible) return
-    if (hasMovableValue) {
-      attemptedRef.current = false
-      setStep('processing')
-    }
-  }, [step, eligible, hasMovableValue])
-
   const busy =
     state.status === 'signing' ||
     state.status === 'depositing' ||
@@ -238,10 +228,12 @@ export function CardRequestModal({
             tier={tier}
             depositedUsd={depositedUsd}
             vaultReady={vaultReady}
+            hasMovableValue={hasMovableValue}
             onSelectTier={(id) => {
               setTierId(id)
               writeSelectedCardTier(id)
             }}
+            onConvert={startRequest}
             onClose={onClose}
             onRecheck={recheck}
             rechecking={eligibility.isFetching || vault.isFetching}
@@ -300,7 +292,7 @@ function ProcessingStep({
   onErrorBack: () => void
 }) {
   // A direct (Polygon-USDC) deposit is in flight or has errored.
-  const directActive =
+  const directEngaged =
     status === 'signing' || status === 'depositing' || status === 'confirming' || status === 'error'
 
   if (vaultError) {
@@ -332,7 +324,7 @@ function ProcessingStep({
   }
 
   // Direct deposit path: ApprovalStep is a self-contained layout.
-  if (directActive) {
+  if (directEngaged) {
     return <ApprovalStep status={status} reason={reason} depositUsd={depositUsd} onRetry={onRetry} onBack={onErrorBack} />
   }
 
@@ -347,7 +339,7 @@ function ProcessingStep({
       {zap.isRunning || zap.phase === 'error' ? (
         <ZapProgressView run={zap.run} plan={zap.plan} error={zap.error} onRetry={zap.retry} />
       ) : (
-        <div className="flex items-center gap-3 text-aurora-violet">
+        <div className="flex items-center gap-3 text-aurora-violet" role="status">
           <Loader2 className="h-5 w-5 animate-spin" />
           <p className="text-label-md text-text-secondary">Reading your wallet…</p>
         </div>
@@ -361,7 +353,9 @@ function FundStep({
   tier,
   depositedUsd,
   vaultReady,
+  hasMovableValue,
   onSelectTier,
+  onConvert,
   onClose,
   onRecheck,
   rechecking,
@@ -370,7 +364,9 @@ function FundStep({
   tier: CardTier
   depositedUsd: number
   vaultReady: boolean
+  hasMovableValue: boolean
   onSelectTier: (id: CardTierId) => void
+  onConvert: () => void
   onClose: () => void
   onRecheck: () => void
   rechecking: boolean
@@ -437,18 +433,29 @@ function FundStep({
         <p className="text-label-sm text-text-secondary">Connect a wallet first.</p>
       )}
 
+      {hasMovableValue && (
+        <GradientButton onClick={onConvert} size="lg" icon={<ArrowRight className="h-5 w-5" />}>
+          Convert &amp; deposit
+        </GradientButton>
+      )}
       <div className="flex gap-3">
         <GhostButton onClick={onClose} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
           Close
         </GhostButton>
-        <GradientButton
-          onClick={onRecheck}
-          size="md"
-          disabled={rechecking}
-          icon={<ArrowRight className="h-5 w-5" />}
-        >
-          {rechecking ? 'Re-checking…' : 'Re-check balance'}
-        </GradientButton>
+        {hasMovableValue ? (
+          <GhostButton onClick={onRecheck} disabled={rechecking}>
+            {rechecking ? 'Re-checking…' : 'Re-check balance'}
+          </GhostButton>
+        ) : (
+          <GradientButton
+            onClick={onRecheck}
+            size="md"
+            disabled={rechecking}
+            icon={<ArrowRight className="h-5 w-5" />}
+          >
+            {rechecking ? 'Re-checking…' : 'Re-check balance'}
+          </GradientButton>
+        )}
       </div>
     </div>
   )
