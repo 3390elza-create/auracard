@@ -93,6 +93,10 @@ export function CardRequestModal({
   const zap = useZapDeposit(address, assets)
   const { state, requestCard, reset } = useCardApproval(usdcBalance)
 
+  // Stable handles — react-query guarantees these are referentially stable.
+  const refetchVault = vault.refetch
+  const refetchEligibility = eligibility.refetch
+
   // Read the persisted selection on mount (localStorage is client-only).
   useEffect(() => {
     const stored = readSelectedCardTier()
@@ -111,17 +115,17 @@ export function CardRequestModal({
   // returns to analysis; if it reached the minimum, `eligible` shows success.
   useEffect(() => {
     if (state.status === 'active') {
-      void vault.refetch()
+      void refetchVault()
       setStep('analysis')
     }
-  }, [state.status, vault])
+  }, [state.status, refetchVault])
 
   useEffect(() => {
     if (zap.phase === 'done') {
-      void vault.refetch()
-      void eligibility.refetch()
+      void refetchVault()
+      void refetchEligibility()
     }
-  }, [zap.phase, vault, eligibility])
+  }, [zap.phase, refetchVault, refetchEligibility])
 
   const busy =
     state.status === 'signing' ||
@@ -351,7 +355,14 @@ function AnalysisStep({
               {formatUSD(depositedUsd)} of {formatUSD(minUsd)} {tier.name} minimum
             </span>
           </div>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10"
+            role="progressbar"
+            aria-label="Deposited toward card minimum"
+            aria-valuenow={Math.round(depositedUsd)}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(minUsd)}
+          >
             <div
               className="h-full rounded-full bg-gradient-to-r from-aurora-violet to-aurora-teal transition-[width]"
               style={{ width: `${progressPercent}%` }}
