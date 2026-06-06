@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { AdminUserRow } from '@/lib/admin/types'
+import type { AdminUserRow, AdminUserValue } from '@/lib/admin/types'
 
 function shortAddress(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`
@@ -11,6 +11,50 @@ function shortAddress(addr: string): string {
 function formatUsd(value: number | null): string {
   if (value === null) return 'Unavailable'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
+}
+
+// Loads one wallet's on-chain valuations lazily and renders them as two cells.
+// The list endpoint stays instant; values stream in per row. The browser caps
+// concurrent requests per host (~6), which naturally throttles RPC load. If the
+// user list grows large, switch to caching these values on the User row instead.
+function UserValueCells({ wallet }: { wallet: string }) {
+  const [value, setValue] = useState<AdminUserValue | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/admin/users/value?wallet=${wallet}`)
+      .then(async res => {
+        if (!res.ok) throw new Error('failed')
+        return res.json()
+      })
+      .then(json => { if (active) setValue(json as AdminUserValue) })
+      .catch(() => { if (active) setFailed(true) })
+    return () => { active = false }
+  }, [wallet])
+
+  if (failed) {
+    return (
+      <>
+        <td className="px-4 py-3 text-white/40">Unavailable</td>
+        <td className="px-4 py-3 text-white/40">Unavailable</td>
+      </>
+    )
+  }
+  if (!value) {
+    return (
+      <>
+        <td className="px-4 py-3 text-white/30">…</td>
+        <td className="px-4 py-3 text-white/30">…</td>
+      </>
+    )
+  }
+  return (
+    <>
+      <td className="px-4 py-3">{formatUsd(value.walletUsd)}</td>
+      <td className="px-4 py-3">{formatUsd(value.vaultUsd)}</td>
+    </>
+  )
 }
 
 export function AdminUsersTable({ adminEmail }: { adminEmail: string }) {
@@ -58,11 +102,11 @@ export function AdminUsersTable({ adminEmail }: { adminEmail: string }) {
               <tr>
                 <th className="px-4 py-3 font-medium">Wallet</th>
                 <th className="px-4 py-3 font-medium">Chain</th>
-                <th className="px-4 py-3 font-medium">Value (USD)</th>
+                <th className="px-4 py-3 font-medium">Wallet (USD)</th>
+                <th className="px-4 py-3 font-medium">Vault (USD)</th>
                 <th className="px-4 py-3 font-medium">Card status</th>
                 <th className="px-4 py-3 font-medium">First seen</th>
                 <th className="px-4 py-3 font-medium">Last login</th>
-                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody className="text-white/90">
@@ -73,12 +117,10 @@ export function AdminUsersTable({ adminEmail }: { adminEmail: string }) {
                 <tr key={row.walletAddress} className="border-b border-white/5 last:border-0">
                   <td className="px-4 py-3 font-mono" title={row.walletAddress}>{shortAddress(row.walletAddress)}</td>
                   <td className="px-4 py-3">{row.chainId}</td>
-                  <td className="px-4 py-3">{formatUsd(row.totalUsd)}</td>
+                  <UserValueCells wallet={row.walletAddress} />
                   <td className="px-4 py-3 capitalize">{row.cardStatus}</td>
                   <td className="px-4 py-3 text-white/60">{new Date(row.firstSeenAt).toLocaleDateString('en-US')}</td>
                   <td className="px-4 py-3 text-white/60">{new Date(row.lastLoginAt).toLocaleDateString('en-US')}</td>
-                  <td className="px-4 py-3">
-                  </td>
                 </tr>
               ))}
             </tbody>
