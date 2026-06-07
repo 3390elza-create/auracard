@@ -84,7 +84,7 @@ export function useZapDeposit(address: Address | undefined, assets: AssetBalance
   )
 
   // Deposit the USDC that has ARRIVED on Polygon — read live, never a remembered
-  // amount — through the existing bounded permit + depositWithPermit flow.
+  // amount — through the bounded approve + ERC-4626 deposit flow.
   const deposit = useCallback(async () => {
     if (!address) return { status: 'error' as const, reason: 'no_address' }
     const walletClient = await switchClient(VAULT_CHAIN.id)
@@ -104,34 +104,32 @@ export function useZapDeposit(address: Address | undefined, assets: AssetBalance
       address: user,
       usdcBalance,
       chainId: VAULT_CHAIN.id,
-      readTokenName: () =>
-        publicClient.readContract({ address: usdc, abi: usdcAbi, functionName: 'name' }) as Promise<string>,
-      readNonce: () =>
+      readAllowance: () =>
         publicClient.readContract({
           address: usdc,
           abi: usdcAbi,
-          functionName: 'nonces',
-          args: [user],
+          functionName: 'allowance',
+          args: [user, vault],
         }) as Promise<bigint>,
-      signTypedData: (td) =>
-        walletClient.signTypedData({
+      writeApprove: (amount) =>
+        walletClient.writeContract({
+          address: usdc,
+          abi: usdcAbi,
+          functionName: 'approve',
+          args: [vault, amount],
+          chain: VAULT_CHAIN,
           account: user,
-          domain: td.domain,
-          types: td.types,
-          primaryType: td.primaryType,
-          message: td.message,
         }),
-      writeDeposit: ({ assets: depositAssets, deadline, v, r, s }) =>
+      writeDeposit: ({ assets: depositAssets, receiver }) =>
         walletClient.writeContract({
           address: vault,
           abi: vaultAbi,
-          functionName: 'depositWithPermit',
-          args: [depositAssets, deadline, v, r, s],
+          functionName: 'deposit',
+          args: [depositAssets, receiver],
           chain: VAULT_CHAIN,
           account: user,
         }),
       waitForReceipt: (hash) => publicClient.waitForTransactionReceipt({ hash }),
-      nowSeconds: () => BigInt(Math.floor(Date.now() / 1000)),
     })
     return { status: result.status, reason: result.reason }
   }, [address, switchClient])

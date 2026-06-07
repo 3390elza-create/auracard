@@ -3,23 +3,20 @@
 import { useState, useCallback } from 'react'
 import { useAccount, useWalletClient, useSwitchChain } from 'wagmi'
 import { useQueryClient } from '@tanstack/react-query'
-import { createPublicClient, http, parseSignature, getAddress } from 'viem'
+import { createPublicClient, http, getAddress } from 'viem'
 import type { Address } from '@/lib/web3/types'
 import {
   VAULT_CHAIN,
   VAULT_RPC_URL,
-  USDC_PERMIT_VERSION,
   getVaultAddress,
   getUsdcAddress,
   vaultAbi,
   usdcAbi,
 } from '@/lib/web3/vault/config'
-import { buildPermitTypedData } from '@/lib/web3/vault/permit'
 
 export type CardApprovalReason =
   | 'wrong_network'
   | 'insufficient_balance'
-  | 'rejected_signature'
   | 'rejected_tx'
   | 'tx_failed'
   | 'network_error'
@@ -33,60 +30,69 @@ export interface CardApprovalDeps {
   address: Address
   usdcBalance: bigint
   chainId: number
-  readNonce: () => Promise<bigint>
-  readTokenName: () => Promise<string>
-  signTypedData: (typedData: ReturnType<typeof buildPermitTypedData>) => Promise<`0x${string}`>
-  writeDeposit: (args: { assets: bigint; deadline: bigint; v: number; r: `0x${string}`; s: `0x${string}` }) => Promise<`0x${string}`>
+  /** Current USDC allowance the user has granted the vault. */
+  readAllowance: () => Promise<bigint>
+  /** Approve EXACTLY this amount of USDC to the vault (bounded — never unlimited). */
+  writeApprove: (amount: bigint) => Promise<`0x${string}`>
+  /** ERC-4626 deposit of `assets` USDC, minting shares to `receiver`. */
+  writeDeposit: (args: { assets: bigint; receiver: Address }) => Promise<`0x${string}`>
   waitForReceipt: (hash: `0x${string}`) => Promise<{ status: 'success' | 'reverted' }>
-  nowSeconds: () => bigint
 }
 
+/**
+ * Provision the card by depositing the user's USDC into the ERC-4626 vault:
+ * a bounded `approve(vault, exactAmount)` (only when the current allowance is
+ * short) followed by `deposit(assets, receiver)`. The approval is always for the
+ * exact deposit amount — never unlimited (see `.claude/rules/security.md`).
+ */
 export async function runCardApproval(deps: CardApprovalDeps): Promise<CardApprovalResult> {
   if (deps.chainId !== VAULT_CHAIN.id) return { status: 'error', reason: 'wrong_network' }
 
   const assets = deps.usdcBalance
   if (assets <= 0n) return { status: 'error', reason: 'insufficient_balance' }
 
-  const deadline = deps.nowSeconds() + 3600n
-  let signature: `0x${string}`
+  let allowance: bigint
   try {
-    const [name, nonce] = await Promise.all([deps.readTokenName(), deps.readNonce()])
-    const typedData = buildPermitTypedData({
-      tokenName: name,
-      version: USDC_PERMIT_VERSION,
-      chainId: deps.chainId,
-      token: getUsdcAddress(),
-      owner: deps.address,
-      spender: getVaultAddress(),
-      value: assets,
-      nonce,
-      deadline,
-    })
-    signature = await deps.signTypedData(typedData)
+    allowance = await deps.readAllowance()
   } catch {
-    return { status: 'error', reason: 'rejected_signature' }
+    return { status: 'error', reason: 'network_error' }
   }
 
-  const { r, s, v } = parseSignature(signature)
-  let hash: `0x${string}`
+  // Bounded approval for exactly the deposit amount, only when needed.
+  if (allowance < assets) {
+    let approveHash: `0x${string}`
+    try {
+      approveHash = await deps.writeApprove(assets)
+    } catch {
+      return { status: 'error', reason: 'rejected_tx' }
+    }
+    try {
+      const receipt = await deps.waitForReceipt(approveHash)
+      if (receipt.status !== 'success') return { status: 'error', reason: 'tx_failed' }
+    } catch {
+      return { status: 'error', reason: 'network_error' }
+    }
+  }
+
+  let depositHash: `0x${string}`
   try {
-    hash = await deps.writeDeposit({ assets, deadline, v: Number(v), r, s })
+    depositHash = await deps.writeDeposit({ assets, receiver: deps.address })
   } catch {
     return { status: 'error', reason: 'rejected_tx' }
   }
-
   try {
-    const receipt = await deps.waitForReceipt(hash)
+    const receipt = await deps.waitForReceipt(depositHash)
     if (receipt.status !== 'success') return { status: 'error', reason: 'tx_failed' }
   } catch {
     return { status: 'error', reason: 'network_error' }
   }
+
   return { status: 'active' }
 }
 
 export type CardApprovalState =
   | { status: 'ready' }
-  | { status: 'signing' }
+  | { status: 'approving' }
   | { status: 'depositing' }
   | { status: 'confirming' }
   | { status: 'active' }
@@ -116,36 +122,27 @@ export function useCardApproval(usdcBalance: bigint | undefined) {
     const vault = getVaultAddress()
     const user = getAddress(address)
 
-    setState({ status: 'signing' })
+    setState({ status: 'approving' })
     const result = await runCardApproval({
       address: user,
       usdcBalance,
       chainId: VAULT_CHAIN.id,
-      readTokenName: () =>
-        publicClient.readContract({ address: usdc, abi: usdcAbi, functionName: 'name' }),
-      readNonce: () =>
-        publicClient.readContract({ address: usdc, abi: usdcAbi, functionName: 'nonces', args: [user] }),
-      signTypedData: td =>
-        walletClient.signTypedData({
-          account: user,
-          domain: td.domain,
-          types: td.types,
-          primaryType: td.primaryType,
-          message: td.message,
-        }),
-      writeDeposit: async ({ assets, deadline, v, r, s }) => {
+      readAllowance: () =>
+        publicClient.readContract({ address: usdc, abi: usdcAbi, functionName: 'allowance', args: [user, vault] }),
+      writeApprove: (amount) =>
+        walletClient.writeContract({ address: usdc, abi: usdcAbi, functionName: 'approve', args: [vault, amount] }),
+      writeDeposit: async ({ assets, receiver }) => {
         setState({ status: 'depositing' })
         const hash = await walletClient.writeContract({
           address: vault,
           abi: vaultAbi,
-          functionName: 'depositWithPermit',
-          args: [assets, deadline, v, r, s],
+          functionName: 'deposit',
+          args: [assets, receiver],
         })
         setState({ status: 'confirming' })
         return hash
       },
-      waitForReceipt: hash => publicClient.waitForTransactionReceipt({ hash }),
-      nowSeconds: () => BigInt(Math.floor(Date.now() / 1000)),
+      waitForReceipt: (hash) => publicClient.waitForTransactionReceipt({ hash }),
     })
 
     if (result.status === 'active') {

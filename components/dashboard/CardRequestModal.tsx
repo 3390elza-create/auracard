@@ -48,7 +48,7 @@ type Step = 'intro' | 'processing' | 'fund'
 
 const STATUS_LABEL: Record<string, string> = {
   ready: 'Preparing the deposit…',
-  signing: 'Sign the permit in your wallet…',
+  approving: 'Approve USDC in your wallet…',
   depositing: 'Confirm the deposit in your wallet…',
   confirming: 'Confirming on-chain…',
 }
@@ -147,7 +147,7 @@ export function CardRequestModal({
   }, [step, zap.phase, state.status, eligible])
 
   const busy =
-    state.status === 'signing' ||
+    state.status === 'approving' ||
     state.status === 'depositing' ||
     state.status === 'confirming' ||
     zap.isRunning ||
@@ -293,7 +293,7 @@ function ProcessingStep({
 }) {
   // A direct (Polygon-USDC) deposit is in flight or has errored.
   const directEngaged =
-    status === 'signing' || status === 'depositing' || status === 'confirming' || status === 'error'
+    status === 'approving' || status === 'depositing' || status === 'confirming' || status === 'error'
 
   if (vaultError) {
     return (
