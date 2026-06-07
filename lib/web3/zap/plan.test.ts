@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AssetBalance } from '@/lib/dashboard/types'
-import { buildZapPlan } from './plan'
+import { buildZapPlan, filterLegsByGas } from './plan'
 import { DEFAULT_ZAP_CONFIG, NATIVE_SENTINEL } from './types'
 
 // Minimal AssetBalance factory for plan inputs.
@@ -136,5 +136,44 @@ describe('buildZapPlan', () => {
     )
     expect(eth.legs[0].selections[0].usdValue).toBeCloseTo(32, 6)   // $40 - $8 mainnet
     expect(pol.legs[0].selections[0].usdValue).toBeCloseTo(39.5, 6) // $40 - $0.50 Polygon
+  })
+})
+
+describe('filterLegsByGas', () => {
+  it('drops an ERC-20-only leg on a chain with no native gas', () => {
+    const assets = [asset({ chainId: 1, address: '0xusdceth', isUsdc: true, usdValue: 200, amountRaw: 200_000_000n })]
+    const plan = filterLegsByGas(buildZapPlan(assets, DEFAULT_ZAP_CONFIG), assets, DEFAULT_ZAP_CONFIG)
+    expect(plan.legs).toHaveLength(0)
+    expect(plan.skipped.some((s) => s.reason === 'insufficient_gas')).toBe(true)
+  })
+
+  it('keeps the leg when the chain holds enough native for gas', () => {
+    // $200 USDC + $2 native ETH on Ethereum: ETH is below the $8 reserve (so it
+    // is not itself converted) but $2 ≥ the $1.5 mainnet gas floor.
+    const assets = [
+      asset({ chainId: 1, address: '0xusdceth', isUsdc: true, usdValue: 200, amountRaw: 200_000_000n }),
+      asset({ chainId: 1, isNative: true, address: null, amountRaw: 10n ** 18n, usdValue: 2 }),
+    ]
+    const plan = filterLegsByGas(buildZapPlan(assets, DEFAULT_ZAP_CONFIG), assets, DEFAULT_ZAP_CONFIG)
+    expect(plan.legs).toHaveLength(1)
+    expect(plan.legs[0].chainId).toBe(1)
+    expect(plan.skipped.some((s) => s.reason === 'insufficient_gas')).toBe(false)
+  })
+
+  it('leaves a leg that converts native (gas covered by the reserve)', () => {
+    const assets = [asset({ chainId: 1, isNative: true, address: null, amountRaw: 10n ** 18n, usdValue: 40 })]
+    const plan = filterLegsByGas(buildZapPlan(assets, DEFAULT_ZAP_CONFIG), assets, DEFAULT_ZAP_CONFIG)
+    expect(plan.legs).toHaveLength(1)
+    expect(plan.skipped.some((s) => s.reason === 'insufficient_gas')).toBe(false)
+  })
+
+  it('preserves existing skipped entries', () => {
+    const assets = [
+      asset({ chainId: null, usdValue: 500 }), // unsupported_chain
+      asset({ chainId: 1, address: '0xusdceth', isUsdc: true, usdValue: 200, amountRaw: 200_000_000n }), // no gas
+    ]
+    const plan = filterLegsByGas(buildZapPlan(assets, DEFAULT_ZAP_CONFIG), assets, DEFAULT_ZAP_CONFIG)
+    expect(plan.skipped.some((s) => s.reason === 'unsupported_chain')).toBe(true)
+    expect(plan.skipped.some((s) => s.reason === 'insufficient_gas')).toBe(true)
   })
 })

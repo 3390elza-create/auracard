@@ -111,3 +111,46 @@ export function buildZapPlan(
 
   return { legs, skipped, totalUsd: legs.reduce((sum, l) => sum + l.totalUsd, 0) }
 }
+
+/** Sum of native-token USD value held per chain (the gas budget on that chain). */
+function nativeUsdByChain(assets: AssetBalance[]): Map<ZapChainId, number> {
+  const map = new Map<ZapChainId, number>()
+  for (const asset of assets) {
+    if (!asset.isNative) continue
+    const chainId = asset.chainId ?? null
+    if (!isZapChainId(chainId)) continue
+    map.set(chainId, (map.get(chainId) ?? 0) + asset.usdValue)
+  }
+  return map
+}
+
+/**
+ * Pure: drop legs the wallet can't actually execute for lack of native gas.
+ *
+ * Swapping/bridging an ERC-20 needs native gas on its source chain. A leg made
+ * of ONLY ERC-20s on a chain whose native balance is below `minGasUsdByChain`
+ * has no gas to run, so its tokens are moved to `skipped` ('insufficient_gas')
+ * instead of failing on-chain. Legs that include a native selection are left
+ * alone — their gas is covered by the reserve kept in `buildZapPlan`.
+ */
+export function filterLegsByGas(
+  plan: ZapPlan,
+  assets: AssetBalance[],
+  config: ZapPlanConfig = DEFAULT_ZAP_CONFIG,
+): ZapPlan {
+  const gasUsd = nativeUsdByChain(assets)
+  const legs: ZapLeg[] = []
+  const skipped: SkippedToken[] = [...plan.skipped]
+
+  for (const leg of plan.legs) {
+    const hasNative = leg.selections.some((s) => s.token.isNative)
+    const minGasUsd = config.minGasUsdByChain[leg.chainId] ?? 0.15
+    if (!hasNative && (gasUsd.get(leg.chainId) ?? 0) < minGasUsd) {
+      for (const s of leg.selections) skipped.push({ token: s.token, reason: 'insufficient_gas' })
+      continue
+    }
+    legs.push(leg)
+  }
+
+  return { legs, skipped, totalUsd: legs.reduce((sum, l) => sum + l.totalUsd, 0) }
+}

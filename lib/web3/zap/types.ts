@@ -47,6 +47,7 @@ export type SkipReason =
   | 'below_floor'
   | 'native_below_reserve'
   | 'already_usdc'
+  | 'insufficient_gas'
 
 export interface SkippedToken {
   token: ZapToken
@@ -62,6 +63,11 @@ export interface ZapPlan {
 export interface ZapPlanConfig {
   floorUsd: number // ignore tokens whose convertible value is below this
   nativeReserveUsdByChain: Record<ZapChainId, number> // native value kept for gas, per chain
+  // Minimum native value (USD) a chain must hold to even attempt a leg's txs
+  // (approve + swap/bridge). A leg made of only ERC-20s on a chain below this has
+  // no gas to execute, so it is skipped (reason 'insufficient_gas') rather than
+  // failing on-chain.
+  minGasUsdByChain: Record<ZapChainId, number>
 }
 
 export const DEFAULT_ZAP_CONFIG: ZapPlanConfig = {
@@ -72,5 +78,12 @@ export const DEFAULT_ZAP_CONFIG: ZapPlanConfig = {
     137: 0.5, // Polygon
     8453: 0.5, // Base
     42161: 0.5, // Arbitrum
+  },
+  minGasUsdByChain: {
+    1: 1.5, // Ethereum mainnet — need real ETH to approve + bridge
+    10: 0.15, // Optimism
+    137: 0.15, // Polygon
+    8453: 0.15, // Base
+    42161: 0.15, // Arbitrum
   },
 }
