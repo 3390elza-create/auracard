@@ -39,7 +39,10 @@ export function generateDemoCard(address: Address, currentYear: number): DemoCar
   for (let i = 0; body.length < 15; i++) {
     body += (bytes[i % bytes.length] % 10).toString()
   }
-  const fifteen = ('9999' + body).slice(0, 15)
+  // Classic Mastercard BIN range (51–55) so the demo number matches the
+  // Mastercard brand shown on the card UI. Picked deterministically per address.
+  const prefix = '5' + String(1 + (bytes[0] % 5)) // '51'..'55'
+  const fifteen = (prefix + body).slice(0, 15)
   const number16 = fifteen + String(luhnCheckDigit(fifteen))
   const grouped = number16.replace(/(.{4})/g, '$1 ').trim()
 
