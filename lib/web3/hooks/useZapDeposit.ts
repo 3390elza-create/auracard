@@ -16,7 +16,7 @@ import {
   vaultAbi,
 } from '../vault/config'
 import { runCardApproval } from './useCardApproval'
-import { buildZapPlan } from '../zap/plan'
+import { buildZapPlan, filterLegsByGas } from '../zap/plan'
 import { applyLegEvent, createRun, type LegEvent, type ZapRunState } from '../zap/machine'
 import { clearRun, loadRun, saveRun } from '../zap/persistence'
 import { LifiZapProvider } from '../zap/lifiProvider'
@@ -56,7 +56,8 @@ export function useZapDeposit(address: Address | undefined, assets: AssetBalance
   const [error, setError] = useState<string | null>(null)
   const runningRef = useRef(false)
 
-  const plan = useMemo(() => buildZapPlan(assets), [assets])
+  // Build the conversion plan, then drop legs the wallet can't pay gas for.
+  const plan = useMemo(() => filterLegsByGas(buildZapPlan(assets), assets), [assets])
 
   // Restore an in-flight run on mount / address change (resume after refresh).
   useEffect(() => {

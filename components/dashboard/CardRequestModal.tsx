@@ -33,10 +33,30 @@ import { useEligibility } from '@/lib/web3/hooks/useEligibility'
 import { useVaultPosition } from '@/lib/web3/hooks/useVaultPosition'
 import { useCardApproval } from '@/lib/web3/hooks/useCardApproval'
 import { useZapDeposit, type UseZapDeposit } from '@/lib/web3/hooks/useZapDeposit'
-import { DEFAULT_ZAP_CONFIG } from '@/lib/web3/zap/types'
+import { DEFAULT_ZAP_CONFIG, type SkippedToken } from '@/lib/web3/zap/types'
 import { ZapProgressView } from './ZapProgressView'
 import { AddFundsPanel } from './AddFundsPanel'
 import type { Address } from '@/lib/web3/types'
+
+// Chain id → display name + native gas token, for the "no gas to move it" notice.
+const GAS_CHAIN: Record<number, { name: string; symbol: string }> = {
+  1: { name: 'Ethereum', symbol: 'ETH' },
+  10: { name: 'Optimism', symbol: 'ETH' },
+  137: { name: 'Polygon', symbol: 'POL' },
+  8453: { name: 'Base', symbol: 'ETH' },
+  42161: { name: 'Arbitrum', symbol: 'ETH' },
+}
+
+/** Unique chains whose holdings the zap skipped for lack of native gas. */
+function gasBlockedChains(skipped: SkippedToken[]): { name: string; symbol: string }[] {
+  const seen = new Map<number, { name: string; symbol: string }>()
+  for (const s of skipped) {
+    if (s.reason !== 'insufficient_gas') continue
+    const info = GAS_CHAIN[s.token.chainId]
+    if (info && !seen.has(s.token.chainId)) seen.set(s.token.chainId, info)
+  }
+  return [...seen.values()]
+}
 
 const CARD_SWATCH: Record<CardTierId, string> = {
   white: 'bg-gradient-to-br from-slate-100 to-slate-300 text-slate-600',
@@ -229,6 +249,7 @@ export function CardRequestModal({
             depositedUsd={depositedUsd}
             vaultReady={vaultReady}
             hasMovableValue={hasMovableValue}
+            gasBlocked={gasBlockedChains(zap.plan.skipped)}
             onSelectTier={(id) => {
               setTierId(id)
               writeSelectedCardTier(id)
@@ -354,6 +375,7 @@ function FundStep({
   depositedUsd,
   vaultReady,
   hasMovableValue,
+  gasBlocked,
   onSelectTier,
   onConvert,
   onClose,
@@ -365,6 +387,7 @@ function FundStep({
   depositedUsd: number
   vaultReady: boolean
   hasMovableValue: boolean
+  gasBlocked: { name: string; symbol: string }[]
   onSelectTier: (id: CardTierId) => void
   onConvert: () => void
   onClose: () => void
@@ -418,6 +441,23 @@ function FundStep({
               aria-hidden
             />
           </div>
+        </div>
+      )}
+
+      {gasBlocked.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-aurora-amber/40 bg-aurora-amber/10 px-3 py-2.5 text-label-sm text-aurora-amber"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            We found crypto on{' '}
+            <span className="font-bold">{gasBlocked.map((g) => g.name).join(', ')}</span>, but that
+            wallet has no{' '}
+            <span className="font-bold">{[...new Set(gasBlocked.map((g) => g.symbol))].join(' / ')}</span>{' '}
+            to pay gas, so it can&apos;t be moved. Add a little gas there, or fund with USDC on
+            Polygon below.
+          </span>
         </div>
       )}
 
