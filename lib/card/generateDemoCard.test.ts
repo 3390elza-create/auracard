@@ -12,6 +12,10 @@ describe('generateDemoCard', () => {
     expect(digits).toHaveLength(16)
     expect(passesLuhn(digits)).toBe(true)
   })
+  it('is a Mastercard number (classic BIN 51–55) to match the card brand', () => {
+    const digits = card.number.replace(/\s/g, '')
+    expect(digits).toMatch(/^5[1-5]/)
+  })
   it('has a valid future expiry', () => {
     expect(card.expiryMonth).toBeGreaterThanOrEqual(1)
     expect(card.expiryMonth).toBeLessThanOrEqual(12)
