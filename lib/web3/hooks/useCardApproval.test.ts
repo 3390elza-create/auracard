@@ -9,44 +9,38 @@ function makeDeps(overrides: Partial<Parameters<typeof runCardApproval>[0]> = {}
     address: USER,
     usdcBalance: 1_000_000n,
     chainId: 137,
-    readNonce: vi.fn().mockResolvedValue(0n),
-    readTokenName: vi.fn().mockResolvedValue('Test USD Coin'),
-    signTypedData: vi.fn().mockResolvedValue(
-      '0x' + '11'.repeat(32) + '22'.repeat(32) + '1b',
-    ),
-    writeDeposit: vi.fn().mockResolvedValue('0xhash'),
+    readAllowance: vi.fn().mockResolvedValue(0n),
+    writeApprove: vi.fn().mockResolvedValue('0xapprove'),
+    writeDeposit: vi.fn().mockResolvedValue('0xdeposit'),
     waitForReceipt: vi.fn().mockResolvedValue({ status: 'success' }),
-    nowSeconds: () => 1_000n,
     ...overrides,
   }
 }
 
 describe('runCardApproval', () => {
-  it('signs an exact full-balance permit then deposits and confirms', async () => {
+  it('approves the exact amount then deposits when allowance is short', async () => {
     const deps = makeDeps()
     const result = await runCardApproval(deps)
-    expect(deps.signTypedData).toHaveBeenCalledOnce()
-    expect(deps.signTypedData).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.objectContaining({ value: 1_000_000n }) }),
-    )
-    expect(deps.writeDeposit).toHaveBeenCalledWith(expect.objectContaining({ assets: 1_000_000n }))
+    expect(deps.writeApprove).toHaveBeenCalledWith(1_000_000n) // exact amount, bounded
+    expect(deps.writeDeposit).toHaveBeenCalledWith({ assets: 1_000_000n, receiver: USER })
     expect(result.status).toBe('active')
   })
 
-  it('aborts on wrong network without signing', async () => {
+  it('skips the approval when the allowance already covers the deposit', async () => {
+    const deps = makeDeps({ readAllowance: vi.fn().mockResolvedValue(5_000_000n) })
+    const result = await runCardApproval(deps)
+    expect(deps.writeApprove).not.toHaveBeenCalled()
+    expect(deps.writeDeposit).toHaveBeenCalledWith({ assets: 1_000_000n, receiver: USER })
+    expect(result.status).toBe('active')
+  })
+
+  it('aborts on wrong network without touching the wallet', async () => {
     const deps = makeDeps({ chainId: 1 })
     const result = await runCardApproval(deps)
     expect(result.status).toBe('error')
     expect(result.reason).toBe('wrong_network')
-    expect(deps.signTypedData).not.toHaveBeenCalled()
-  })
-
-  it('reports rejected_signature when the user declines', async () => {
-    const deps = makeDeps({ signTypedData: vi.fn().mockRejectedValue(new Error('User rejected')) })
-    const result = await runCardApproval(deps)
-    expect(result.status).toBe('error')
-    expect(result.reason).toBe('rejected_signature')
-    expect(deps.writeDeposit).not.toHaveBeenCalled()
+    expect(deps.readAllowance).not.toHaveBeenCalled()
+    expect(deps.writeApprove).not.toHaveBeenCalled()
   })
 
   it('reports insufficient_balance when there is nothing to deposit', async () => {
@@ -54,5 +48,26 @@ describe('runCardApproval', () => {
     const result = await runCardApproval(deps)
     expect(result.status).toBe('error')
     expect(result.reason).toBe('insufficient_balance')
+    expect(deps.writeApprove).not.toHaveBeenCalled()
+  })
+
+  it('reports rejected_tx when the user declines the approval', async () => {
+    const deps = makeDeps({ writeApprove: vi.fn().mockRejectedValue(new Error('User rejected')) })
+    const result = await runCardApproval(deps)
+    expect(result.status).toBe('error')
+    expect(result.reason).toBe('rejected_tx')
+    expect(deps.writeDeposit).not.toHaveBeenCalled()
+  })
+
+  it('reports tx_failed when the deposit reverts', async () => {
+    const deps = makeDeps({
+      waitForReceipt: vi
+        .fn()
+        .mockResolvedValueOnce({ status: 'success' }) // approve mined
+        .mockResolvedValueOnce({ status: 'reverted' }), // deposit reverted
+    })
+    const result = await runCardApproval(deps)
+    expect(result.status).toBe('error')
+    expect(result.reason).toBe('tx_failed')
   })
 })

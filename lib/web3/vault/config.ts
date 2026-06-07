@@ -25,8 +25,8 @@ export function getUsdcAddress(): Address {
 
 export const usdcAbi = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
-  { type: 'function', name: 'nonces', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'allowance', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'approve', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ type: 'bool' }] },
 ] as const
 
 export const vaultAbi = [
@@ -35,14 +35,11 @@ export const vaultAbi = [
   { type: 'function', name: 'convertToAssets', stateMutability: 'view', inputs: [{ name: 'shares', type: 'uint256' }], outputs: [{ type: 'uint256' }] },
   {
     type: 'function',
-    name: 'depositWithPermit',
+    name: 'deposit',
     stateMutability: 'nonpayable',
     inputs: [
       { name: 'assets', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-      { name: 'v', type: 'uint8' },
-      { name: 'r', type: 'bytes32' },
-      { name: 's', type: 'bytes32' },
+      { name: 'receiver', type: 'address' },
     ],
     outputs: [{ type: 'uint256' }],
   },
