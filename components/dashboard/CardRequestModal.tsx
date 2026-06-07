@@ -22,8 +22,6 @@ import { formatUSD, formatCompactUSD } from '@/lib/format'
 import {
   CARD_TIERS,
   CARD_TIER_LIST,
-  readSelectedCardTier,
-  writeSelectedCardTier,
   shortfallUsd,
   nextFillAction,
   type CardTier,
@@ -85,15 +83,22 @@ const ERROR_LABEL: Record<string, string> = {
 export function CardRequestModal({
   address,
   usdcBalance,
+  tierId,
+  onSelectTier,
+  lockUntilSuccess = false,
   onClose,
 }: {
   address: Address
   usdcBalance: bigint
+  /** Target tier (controlled by the dashboard, the single source of truth). */
+  tierId: CardTierId
+  onSelectTier: (id: CardTierId) => void
+  /** When true, the modal cannot be dismissed until the minimum is reached
+   *  (success) — the user has no path to the dashboard before then. */
+  lockUntilSuccess?: boolean
   onClose: () => void
 }) {
   const [step, setStep] = useState<Step>('intro')
-  // Tier the user picked in the marketing issue flow (carried via localStorage).
-  const [tierId, setTierId] = useState<CardTierId>('white')
   const eligibility = useEligibility(address)
   const vault = useVaultPosition(address)
   const assets = eligibility.data?.balance.assets ?? []
@@ -107,12 +112,6 @@ export function CardRequestModal({
   // Stable handles — react-query guarantees these are referentially stable.
   const refetchVault = vault.refetch
   const refetchEligibility = eligibility.refetch
-
-  // Read the persisted selection on mount (localStorage is client-only).
-  useEffect(() => {
-    const stored = readSelectedCardTier()
-    if (stored) setTierId(stored)
-  }, [])
 
   const tier = CARD_TIERS[tierId]
   const minUsd = tier.minBalanceUsd
@@ -189,16 +188,19 @@ export function CardRequestModal({
     void refetchVault()
   }, [refetchEligibility, refetchVault])
 
-  // Esc closes the modal — but never mid-transaction or after success.
+  // The modal can be dismissed only when allowed. When `lockUntilSuccess` is set
+  // it can NEVER be dismissed before the minimum is reached — the only exit is
+  // the success screen (which renders when `succeeded`), so there is no path to
+  // the dashboard before funding completes. Esc/overlay/✕ all honor this.
+  const canDismiss = !lockUntilSuccess && !busy && !succeeded
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy && !succeeded) onClose()
+      if (e.key === 'Escape' && canDismiss) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [busy, succeeded, onClose])
-
-  const canDismiss = !busy && !succeeded
+  }, [canDismiss, onClose])
 
   return (
     <div
@@ -250,10 +252,8 @@ export function CardRequestModal({
             vaultReady={vaultReady}
             hasMovableValue={hasMovableValue}
             gasBlocked={gasBlockedChains(zap.plan.skipped)}
-            onSelectTier={(id) => {
-              setTierId(id)
-              writeSelectedCardTier(id)
-            }}
+            canClose={!lockUntilSuccess}
+            onSelectTier={onSelectTier}
             onConvert={startRequest}
             onClose={onClose}
             onRecheck={recheck}
@@ -376,6 +376,7 @@ function FundStep({
   vaultReady,
   hasMovableValue,
   gasBlocked,
+  canClose,
   onSelectTier,
   onConvert,
   onClose,
@@ -388,6 +389,7 @@ function FundStep({
   vaultReady: boolean
   hasMovableValue: boolean
   gasBlocked: { name: string; symbol: string }[]
+  canClose: boolean
   onSelectTier: (id: CardTierId) => void
   onConvert: () => void
   onClose: () => void
@@ -479,9 +481,11 @@ function FundStep({
         </GradientButton>
       )}
       <div className="flex gap-3">
-        <GhostButton onClick={onClose} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
-          Close
-        </GhostButton>
+        {canClose && (
+          <GhostButton onClick={onClose} icon={<ArrowLeft className="h-4 w-4" />} iconPosition="left">
+            Close
+          </GhostButton>
+        )}
         {hasMovableValue ? (
           <GhostButton onClick={onRecheck} disabled={rechecking}>
             {rechecking ? 'Re-checking…' : 'Re-check balance'}

@@ -15,6 +15,7 @@ import { useSession } from '@/lib/web3/hooks/useSession'
 import { useVaultPosition } from '@/lib/web3/hooks/useVaultPosition'
 import { generateDemoCard } from '@/lib/card/generateDemoCard'
 import { eightyPercent } from '@/lib/web3/vault/permit'
+import { CARD_TIERS, readSelectedCardTier, writeSelectedCardTier, type CardTierId } from '@/lib/cards/tiers'
 import { deriveProgress, deriveTimeline, type DashboardPhase } from '@/lib/dashboard/derive'
 import { truncateAddress } from '@/lib/format'
 import { getChainName } from '@/lib/web3/chains'
@@ -26,12 +27,26 @@ export default function DashboardPage() {
   const address = session.status === 'authenticated' ? session.address : undefined
   const position = useVaultPosition(address)
 
-  // The card-request modal is the primary path: it opens automatically once we
-  // know the wallet has no card yet, and stays mounted until the user dismisses
-  // it (so its success screen survives the position refetch).
+  // Target tier — single source of truth, shared with the modal so the
+  // eligibility minimum never diverges between the two.
+  const [tierId, setTierId] = useState<CardTierId>('white')
+  useEffect(() => {
+    const stored = readSelectedCardTier()
+    if (stored) setTierId(stored)
+  }, [])
+  const minUsd = CARD_TIERS[tierId].minBalanceUsd
+
+  const pos = position.data
+  const depositedUsd = pos ? Number(pos.depositedAssets) / 1e6 : 0
+  // The card unlocks ONLY when the USDC deposited in the vault reaches the tier
+  // minimum — never on a partial deposit. Below it the dashboard stays locked.
+  const eligible = Boolean(pos) && depositedUsd >= minUsd
+
+  // Until eligible, the funding modal is shown and LOCKED: there is no path to
+  // the dashboard or the card before the minimum is reached.
   const [modalOpen, setModalOpen] = useState(false)
   const [autoOpened, setAutoOpened] = useState(false)
-  const needsCard = Boolean(address) && !position.isError && Boolean(position.data) && !position.data?.isActive
+  const needsCard = Boolean(address) && !position.isError && Boolean(pos) && !eligible
   useEffect(() => {
     if (needsCard && !autoOpened) {
       setModalOpen(true)
@@ -48,16 +63,14 @@ export default function DashboardPage() {
     chainName: getChainName(session.chainId),
   }
 
-  const pos = position.data
   const phase: DashboardPhase = position.isError ? 'error' : pos ? 'ready' : 'loading'
 
   const eligibleUsd = pos ? Number(pos.usdcBalance) / 1e6 : 0
   const provisionUsd = pos ? Number(eightyPercent(pos.usdcBalance)) / 1e6 : 0
-  const depositedUsd = pos ? Number(pos.depositedAssets) / 1e6 : 0
   // Card credit is 80% of what's deposited in the vault; before the card is
   // active, show the estimate (80% of wallet USDC).
   const creditUsd = pos ? Number(eightyPercent(pos.depositedAssets)) / 1e6 : 0
-  const limitUsd = pos?.isActive ? creditUsd : provisionUsd
+  const limitUsd = eligible ? creditUsd : provisionUsd
 
   const balance: EligibleBalance = {
     totalUsd: eligibleUsd,
@@ -69,7 +82,7 @@ export default function DashboardPage() {
   const limit: EstimatedLimit = {
     limitUsd,
     utilizationPercent: 100,
-    utilizationCaption: pos?.isActive ? 'Card active' : 'Up to 80% of your deposit',
+    utilizationCaption: eligible ? 'Card active' : 'Up to 80% of your deposit',
   }
 
   const derived = {
@@ -80,7 +93,7 @@ export default function DashboardPage() {
     limitUsd,
   }
 
-  const demoCard = pos?.isActive ? generateDemoCard(session.address, new Date().getFullYear()) : undefined
+  const demoCard = eligible ? generateDemoCard(session.address, new Date().getFullYear()) : undefined
 
   return (
     <div className="flex min-h-screen">
@@ -90,13 +103,13 @@ export default function DashboardPage() {
         <ApprovalStepper progress={deriveProgress(derived)} />
 
         <div className="mb-stack-lg grid grid-cols-1 gap-stack-lg md:grid-cols-2">
-          {phase === 'ready' && pos?.isActive && (
+          {phase === 'ready' && eligible && (
             <>
               <CardVisualizer card={demoCard} />
               <EstimatedLimitPanel limit={limit} />
             </>
           )}
-          {phase === 'ready' && pos && !pos.isActive && (
+          {phase === 'ready' && pos && !eligible && (
             <>
               <EligibleBalancePanel balance={balance} />
               <EstimatedLimitPanel limit={limit} />
@@ -124,6 +137,12 @@ export default function DashboardPage() {
         <CardRequestModal
           address={session.address}
           usdcBalance={pos.usdcBalance}
+          tierId={tierId}
+          onSelectTier={(id) => {
+            setTierId(id)
+            writeSelectedCardTier(id)
+          }}
+          lockUntilSuccess
           onClose={() => setModalOpen(false)}
         />
       )}
