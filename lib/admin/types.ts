@@ -3,6 +3,7 @@ import type { CardStatus } from '@prisma/client'
 export interface AdminUserRow {
   walletAddress: string
   chainId: number
+  walletProvider: string | null // connector name, best-effort; null when unknown
   cardStatus: CardStatus
   firstSeenAt: string // ISO
   lastLoginAt: string // ISO

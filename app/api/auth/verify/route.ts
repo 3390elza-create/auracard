@@ -13,6 +13,9 @@ import { prisma } from '@/lib/db/prisma'
 const BodySchema = z.object({
   message: z.string().min(1),
   signature: z.string().regex(/^0x[a-fA-F0-9]+$/),
+  // Best-effort wallet connector name (e.g. MetaMask, Phantom, WalletConnect).
+  // Client-supplied and display-only — never trusted for auth.
+  walletProvider: z.string().trim().min(1).max(64).optional(),
 })
 
 const ISSUED_AT_SKEW_MS = 10 * 60 * 1000
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
   }
-  const { message, signature } = parsed.data
+  const { message, signature, walletProvider } = parsed.data
 
   const cookieValue = req.cookies.get(NONCE_COOKIE)?.value
   if (!cookieValue) {
@@ -79,8 +82,10 @@ export async function POST(req: NextRequest) {
   try {
     await prisma.user.upsert({
       where: { walletAddress: nonceData.address },
-      create: { walletAddress: nonceData.address, chainId: parsedMessage.chainId },
-      update: { chainId: parsedMessage.chainId },
+      create: { walletAddress: nonceData.address, chainId: parsedMessage.chainId, walletProvider: walletProvider ?? null },
+      // Only overwrite the stored provider when this login reported one, so a
+      // later login that couldn't detect it doesn't wipe a known value.
+      update: { chainId: parsedMessage.chainId, ...(walletProvider ? { walletProvider } : {}) },
     })
   } catch (err) {
     // Best-effort: login must not depend on the write. Log so a persistent

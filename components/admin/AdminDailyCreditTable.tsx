@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-interface DailyCreditRow {
+interface DailyRow {
   day: string
-  wallets: number
+  connected: number
+  depositors: number
   totalUsd: number
 }
 
@@ -20,14 +21,14 @@ const fmtDay = (iso: string) =>
   })
 
 export function AdminDailyCreditTable() {
-  const [rows, setRows] = useState<DailyCreditRow[] | null>(null)
+  const [rows, setRows] = useState<DailyRow[] | null>(null)
   const [error, setError] = useState(false)
 
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/daily-credit', { credentials: 'include' })
       if (!res.ok) throw new Error(String(res.status))
-      const json = (await res.json()) as { days?: DailyCreditRow[] }
+      const json = (await res.json()) as { days?: DailyRow[] }
       setRows(json.days ?? [])
       setError(false)
     } catch {
@@ -48,10 +49,10 @@ export function AdminDailyCreditTable() {
     <section className="mx-auto mb-8 w-full max-w-6xl rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Credit released per day</h2>
+          <h2 className="text-lg font-semibold text-white">Daily activity</h2>
           <p className="text-sm text-white/50">
-            USDC deposited into the vault, by day —{' '}
-            <span className="text-white/90">{fmtUsd(totalReleased)} total</span>
+            Wallets connected and USDC deposited into the vault, by day —{' '}
+            <span className="text-white/90">{fmtUsd(totalReleased)} released total</span>
           </p>
         </div>
         <button
@@ -75,7 +76,8 @@ export function AdminDailyCreditTable() {
             <thead>
               <tr className="border-b border-white/10 text-white/50">
                 <th className="py-2 pr-4 font-medium">Day</th>
-                <th className="py-2 pr-4 text-right font-medium">Wallets</th>
+                <th className="py-2 pr-4 text-right font-medium">Connected</th>
+                <th className="py-2 pr-4 text-right font-medium">Depositors</th>
                 <th className="py-2 text-right font-medium">Credit released</th>
               </tr>
             </thead>
@@ -83,7 +85,8 @@ export function AdminDailyCreditTable() {
               {rows.map((r) => (
                 <tr key={r.day} className="border-b border-white/5">
                   <td className="py-2 pr-4 text-white/90">{fmtDay(r.day)}</td>
-                  <td className="py-2 pr-4 text-right tabular-nums text-white/90">{r.wallets}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-white/90">{r.connected}</td>
+                  <td className="py-2 pr-4 text-right tabular-nums text-white/90">{r.depositors}</td>
                   <td className="py-2 text-right tabular-nums text-white/90">{fmtUsd(r.totalUsd)}</td>
                 </tr>
               ))}

@@ -101,6 +101,7 @@ export function AdminUsersTable({ adminEmail }: { adminEmail: string }) {
             <thead className="border-b border-white/10 text-white/50">
               <tr>
                 <th className="px-4 py-3 font-medium">Wallet</th>
+                <th className="px-4 py-3 font-medium">Provider</th>
                 <th className="px-4 py-3 font-medium">Chain</th>
                 <th className="px-4 py-3 font-medium">Wallet (USD)</th>
                 <th className="px-4 py-3 font-medium">Vault (USD)</th>
@@ -111,11 +112,12 @@ export function AdminUsersTable({ adminEmail }: { adminEmail: string }) {
             </thead>
             <tbody className="text-white/90">
               {rows.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-white/50">No users yet.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-6 text-center text-white/50">No users yet.</td></tr>
               )}
               {rows.map(row => (
                 <tr key={row.walletAddress} className="border-b border-white/5 last:border-0">
                   <td className="px-4 py-3 font-mono" title={row.walletAddress}>{shortAddress(row.walletAddress)}</td>
+                  <td className="px-4 py-3">{row.walletProvider ?? '—'}</td>
                   <td className="px-4 py-3">{row.chainId}</td>
                   <UserValueCells wallet={row.walletAddress} />
                   <td className="px-4 py-3 capitalize">{row.cardStatus}</td>

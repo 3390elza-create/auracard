@@ -31,6 +31,7 @@ describe('GET /api/admin/users', () => {
         id: 'u1',
         walletAddress: '0x1111111111111111111111111111111111111111',
         chainId: 1,
+        walletProvider: 'MetaMask',
         cardStatus: 'pending',
         firstSeenAt: new Date('2026-06-01T00:00:00Z'),
         lastLoginAt: new Date('2026-06-02T00:00:00Z'),
@@ -44,6 +45,7 @@ describe('GET /api/admin/users', () => {
     expect(json.users[0]).toEqual({
       walletAddress: '0x1111111111111111111111111111111111111111',
       chainId: 1,
+      walletProvider: 'MetaMask',
       cardStatus: 'pending',
       firstSeenAt: '2026-06-01T00:00:00.000Z',
       lastLoginAt: '2026-06-02T00:00:00.000Z',
