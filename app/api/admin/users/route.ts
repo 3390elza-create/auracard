@@ -14,6 +14,7 @@ export async function GET() {
   const rows: AdminUserRow[] = users.map(user => ({
     walletAddress: user.walletAddress,
     chainId: user.chainId,
+    walletProvider: user.walletProvider ?? null,
     cardStatus: user.cardStatus,
     firstSeenAt: user.firstSeenAt.toISOString(),
     lastLoginAt: user.lastLoginAt.toISOString(),

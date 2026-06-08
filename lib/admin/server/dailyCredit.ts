@@ -42,14 +42,50 @@ export function utcToday(now: Date = new Date()): string {
   return now.toISOString().slice(0, 10)
 }
 
+// Combined per-day view: wallets that CONNECTED that day (from the DB) alongside
+// the on-chain deposits. Connections and deposits are independent — a wallet can
+// connect without depositing (and vice-versa).
+export interface DailyRow {
+  day: string // YYYY-MM-DD (UTC)
+  connected: number // distinct wallets first seen that day
+  depositors: number // distinct wallets that deposited that day
+  totalUsd: number // total USDC released that day
+}
+
 /**
- * Pure: guarantee a row for `today` (YYYY-MM-DD, UTC) exists, at zero, so a day
- * with no deposits still shows in the table instead of an empty state. Rows are
- * newest-first and today is the newest possible day, so it goes on top.
+ * Pure: count wallets first seen per UTC day from their `firstSeenAt` ISO
+ * timestamps. Each wallet is one User row, so a plain per-day count suffices.
  */
-export function withTodayRow(rows: DailyCreditRow[], today: string): DailyCreditRow[] {
-  if (rows.some((r) => r.day === today)) return rows
-  return [{ day: today, wallets: 0, totalUsd: 0 }, ...rows]
+export function groupConnectionsByDay(firstSeenIso: string[]): Map<string, number> {
+  const byDay = new Map<string, number>()
+  for (const iso of firstSeenIso) {
+    if (!iso) continue
+    const day = iso.slice(0, 10)
+    byDay.set(day, (byDay.get(day) ?? 0) + 1)
+  }
+  return byDay
+}
+
+/**
+ * Pure: merge on-chain deposit rows with per-day connection counts into one
+ * newest-first table. Always includes `today` (at zero) so the table never
+ * collapses to an empty state, and unions every day that has either activity.
+ */
+export function mergeDailyRows(
+  deposits: DailyCreditRow[],
+  connections: Map<string, number>,
+  today: string,
+): DailyRow[] {
+  const depByDay = new Map(deposits.map((d) => [d.day, d]))
+  const days = new Set<string>([today, ...depByDay.keys(), ...connections.keys()])
+  return [...days]
+    .map((day) => ({
+      day,
+      connected: connections.get(day) ?? 0,
+      depositors: depByDay.get(day)?.wallets ?? 0,
+      totalUsd: depByDay.get(day)?.totalUsd ?? 0,
+    }))
+    .sort((a, b) => (a.day < b.day ? 1 : -1))
 }
 
 // alchemy_getAssetTransfers is an Alchemy-only RPC method, so we must hit an

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { groupTransfersByDay, utcToday, withTodayRow, type AssetTransfer } from './dailyCredit'
+import {
+  groupTransfersByDay,
+  groupConnectionsByDay,
+  mergeDailyRows,
+  utcToday,
+  type AssetTransfer,
+} from './dailyCredit'
 
 const t = (day: string, from: string, value: number): AssetTransfer => ({
   from,
@@ -51,21 +57,52 @@ describe('utcToday', () => {
   })
 })
 
-describe('withTodayRow', () => {
-  it('prepends a zero row for today when no deposits exist that day', () => {
-    expect(withTodayRow([], '2026-06-05')).toEqual([{ day: '2026-06-05', wallets: 0, totalUsd: 0 }])
+describe('groupConnectionsByDay', () => {
+  it('counts wallets first seen per UTC day', () => {
+    const m = groupConnectionsByDay([
+      '2026-06-08T09:00:00.000Z',
+      '2026-06-08T23:59:00.000Z',
+      '2026-06-07T10:00:00.000Z',
+    ])
+    expect(m.get('2026-06-08')).toBe(2)
+    expect(m.get('2026-06-07')).toBe(1)
   })
 
-  it('keeps today on top of earlier days (newest-first order)', () => {
-    const rows = withTodayRow([{ day: '2026-06-04', wallets: 2, totalUsd: 400 }], '2026-06-05')
+  it('ignores empty timestamps', () => {
+    const m = groupConnectionsByDay(['', '2026-06-08T00:00:00Z'])
+    expect(m.get('2026-06-08')).toBe(1)
+    expect(m.size).toBe(1)
+  })
+})
+
+describe('mergeDailyRows', () => {
+  it('merges deposits and connections, always including today, newest-first', () => {
+    const deposits = [{ day: '2026-06-07', wallets: 1, totalUsd: 5 }]
+    const connections = new Map([['2026-06-08', 1], ['2026-06-07', 1]])
+    const rows = mergeDailyRows(deposits, connections, '2026-06-08')
     expect(rows).toEqual([
-      { day: '2026-06-05', wallets: 0, totalUsd: 0 },
-      { day: '2026-06-04', wallets: 2, totalUsd: 400 },
+      { day: '2026-06-08', connected: 1, depositors: 0, totalUsd: 0 },
+      { day: '2026-06-07', connected: 1, depositors: 1, totalUsd: 5 },
     ])
   })
 
-  it('leaves rows untouched when today already has deposits', () => {
-    const existing = [{ day: '2026-06-05', wallets: 1, totalUsd: 1000 }]
-    expect(withTodayRow(existing, '2026-06-05')).toBe(existing)
+  it('surfaces today at zero even with no activity at all', () => {
+    expect(mergeDailyRows([], new Map(), '2026-06-08')).toEqual([
+      { day: '2026-06-08', connected: 0, depositors: 0, totalUsd: 0 },
+    ])
+  })
+
+  it('includes a deposit-only day that has no connections', () => {
+    const rows = mergeDailyRows(
+      [{ day: '2026-06-06', wallets: 2, totalUsd: 400 }],
+      new Map(),
+      '2026-06-08',
+    )
+    expect(rows.find((r) => r.day === '2026-06-06')).toEqual({
+      day: '2026-06-06',
+      connected: 0,
+      depositors: 2,
+      totalUsd: 400,
+    })
   })
 })

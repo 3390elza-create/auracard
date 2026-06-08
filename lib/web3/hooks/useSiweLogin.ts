@@ -171,13 +171,17 @@ export function useSiweLogin(): UseSiweLoginReturn {
       }
 
       setState({ status: 'verifying' })
+      // Best-effort wallet name for the admin list. Injected wallets report a
+      // real name (MetaMask, Phantom, …); WalletConnect-relayed ones often just
+      // report "WalletConnect". Display-only — the server never trusts it.
+      const walletProvider = getAccount(wagmiConfig).connector?.name
       let verifyRes: Response
       try {
         verifyRes = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ message, signature }),
+          body: JSON.stringify({ message, signature, walletProvider }),
         })
       } catch {
         setState({ status: 'error', error: 'network_error' })
