@@ -33,6 +33,9 @@ async function createAppKitInstance(): Promise<AppKit> {
       url: typeof window !== 'undefined' ? window.location.origin : 'https://aura.local',
       icons: ['/logo.png'],
     },
+    // Hide MetaMask from the WalletConnect/AppKit wallet list. The id is
+    // MetaMask's WalletConnect Explorer wallet id.
+    excludeWalletIds: ['c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96'],
     themeMode: 'dark',
     themeVariables: {
       '--w3m-accent': '#7C5CFF',
