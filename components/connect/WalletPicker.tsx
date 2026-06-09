@@ -16,7 +16,6 @@ interface WalletOptionConfig {
 
 const wallets: WalletOptionConfig[] = [
   { id: 'walletconnect', name: 'WalletConnect',  iconSrc: '/wallets/walletconnect.svg', highlighted: true },
-  { id: 'metamask',      name: 'MetaMask',       iconSrc: '/wallets/metamask.svg' },
   { id: 'coinbase',      name: 'Coinbase Wallet',iconSrc: '/wallets/coinbase.svg' },
   { id: 'rainbow',       name: 'Rainbow',        iconSrc: '/wallets/rainbow.svg' },
 ]
